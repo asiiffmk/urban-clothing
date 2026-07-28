@@ -18,7 +18,7 @@ const productImages = {
   catShirts
 };
 
-export default function NewArrivals({ onQuickView }) {
+export default function NewArrivals({ onQuickView, onAddToCart }) {
   const [newArrivals, setNewArrivals] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -28,6 +28,8 @@ export default function NewArrivals({ onQuickView }) {
         const { data, error } = await supabase
           .from('products')
           .select('*')
+          .neq('category', 'Shorts')
+          .neq('category', 'Innerwear')
           .order('created_at', { ascending: false })
           .limit(4);
         
@@ -136,7 +138,10 @@ export default function NewArrivals({ onQuickView }) {
               <div className="new-arrival-actions">
                 <button 
                   className="new-arrival-btn btn-add-cart"
-                  onClick={(e) => handleProductAction(e, product)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAddToCart(product);
+                  }}
                 >
                   Add to cart
                 </button>

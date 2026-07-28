@@ -22,8 +22,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
   const [fullAddress, setFullAddress] = useState('');
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shipping = subtotal > 200 || subtotal === 0 ? 0 : 15;
-  const total = subtotal + shipping;
+  const total = subtotal;
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
@@ -238,7 +237,8 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
                     className="review-form-input" 
                     value={phone2}
                     onChange={(e) => setPhone2(e.target.value)}
-                    placeholder="Alternative (optional)"
+                    placeholder="Alternative contact number"
+                    required
                   />
                 </div>
               </div>
@@ -397,11 +397,6 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
               <span>Subtotal</span>
               <span>${subtotal}</span>
             </div>
-            <div className="cart-summary-row">
-              <span>Shipping</span>
-              <span>{shipping === 0 ? 'Complimentary' : `$${shipping}`}</span>
-            </div>
-            
             <div className="cart-summary-row total">
               <span>Total</span>
               <span className="total-price">${total}</span>

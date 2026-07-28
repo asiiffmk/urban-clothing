@@ -9,7 +9,7 @@ export default function ReviewSection() {
   const [showForm, setShowForm] = useState(false);
   const [author, setAuthor] = useState('');
   const [rating, setRating] = useState(5);
-  const [productName, setProductName] = useState('The Oxford Textured Shirt');
+  const [productName, setProductName] = useState('General Feedback');
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
@@ -56,6 +56,7 @@ export default function ReviewSection() {
       setAuthor('');
       setComment('');
       setRating(5);
+      setProductName('General Feedback');
       setShowForm(false);
       
       // Refresh list
@@ -155,19 +156,6 @@ export default function ReviewSection() {
                 </div>
               </div>
 
-              <div className="review-form-group">
-                <label htmlFor="reviewedProduct">Product Purchased</label>
-                <select 
-                  id="reviewedProduct" 
-                  className="review-form-input"
-                  value={productName}
-                  onChange={(e) => setProductName(e.target.value)}
-                >
-                  {availableProducts.map((p) => (
-                    <option key={p} value={p}>{p}</option>
-                  ))}
-                </select>
-              </div>
 
               <div className="review-form-group">
                 <label htmlFor="reviewComment">Your Feedback</label>

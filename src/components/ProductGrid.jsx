@@ -39,7 +39,7 @@ const productImages = {
 };
 
 export default function ProductGrid({ activeFilter, onFilterChange, onAddToCart, onQuickView, searchTerm = '', onExploreCategory }) {
-  const categories = ['All', 'Shirts', 'Tshirts', 'Pants', 'Shorts', 'Innerwear'];
+  const categories = ['All', 'Shirts', 'Tshirts', 'Pants'];
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -49,7 +49,9 @@ export default function ProductGrid({ activeFilter, onFilterChange, onAddToCart,
         const { data, error } = await supabase
           .from('products')
           .select('*')
-          .order('id', { ascending: true });
+          .neq('category', 'Shorts')
+          .neq('category', 'Innerwear')
+          .order('created_at', { ascending: false });
         
         if (error) throw error;
         

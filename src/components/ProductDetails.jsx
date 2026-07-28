@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Star, ShoppingBag, ChevronLeft, ChevronRight, Check, ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import './Components.css';
+import sizeChartImg from '../assets/size_chart.png';
+import ProductCard from './ProductCard';
 
 // Import images for fallbacks if needed (same as ProductGrid)
 import catShirts from '../assets/cat_shirts.png';
@@ -36,7 +38,7 @@ const productImages = {
   newDenim
 };
 
-export default function ProductDetails({ productId, onBack, onAddToCart, addNotification }) {
+export default function ProductDetails({ productId, onBack, onAddToCart, addNotification, onProductClick }) {
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
@@ -44,6 +46,7 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
   const [quantity, setQuantity] = useState(1);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [sizeScale, setSizeScale] = useState('UK'); // UK or EU converter toggle
+  const [recommendedProducts, setRecommendedProducts] = useState([]);
 
   // Mobile zoom gallery states
   const [isMobileFullscreenOpen, setIsMobileFullscreenOpen] = useState(false);
@@ -75,6 +78,33 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
         if (mappedProduct.colors && mappedProduct.colors.length > 0) {
           setSelectedColor(mappedProduct.colors[0].name);
         }
+
+        // Fetch recommended products
+        const { data: recommendedData } = await supabase
+          .from('products')
+          .select('*')
+          .eq('category', data.category)
+          .neq('id', productId)
+          .limit(4);
+
+        let recommendedList = recommendedData || [];
+        if (recommendedList.length < 4) {
+          const { data: fallbackData } = await supabase
+            .from('products')
+            .select('*')
+            .neq('id', productId)
+            .limit(4 - recommendedList.length);
+          if (fallbackData) {
+            recommendedList = [...recommendedList, ...fallbackData];
+          }
+        }
+
+        const mappedRecommended = recommendedList.map(p => ({
+          ...p,
+          image: productImages[p.image] || p.image,
+          secondaryImage: productImages[p.secondary_image] || p.secondary_image
+        }));
+        setRecommendedProducts(mappedRecommended);
       } catch (err) {
         console.error('Error fetching product details:', err);
       } finally {
@@ -110,7 +140,9 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
     );
   }
 
-  const galleryImages = [product.image, product.secondaryImage || product.image].filter(Boolean);
+  const galleryImages = Array.isArray(product.images) && product.images.length > 0
+    ? product.images
+    : [product.image, product.secondaryImage || product.secondary_image || product.image].filter(Boolean);
 
   const handleNextImage = () => {
     setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
@@ -148,10 +180,6 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
   const handleAddToBag = () => {
     if (!selectedSize) {
       alert("Please select a size first.");
-      return;
-    }
-    if (currentSizeStock === 0) {
-      alert("This size is out of stock.");
       return;
     }
     
@@ -313,12 +341,9 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
                       key={size}
                       className={`size-select-btn ${selectedSize === size ? 'active' : ''} ${isOutOfStock ? 'disabled' : ''}`}
                       onClick={() => {
-                        if (!isOutOfStock) {
-                          setSelectedSize(size);
-                          setQuantity(1); // Reset qty to 1 when changing size
-                        }
+                        setSelectedSize(size);
+                        setQuantity(1); // Reset qty to 1 when changing size
                       }}
-                      disabled={isOutOfStock}
                       title={isOutOfStock ? 'Out of Stock' : ''}
                     >
                       {convertSize(size)}
@@ -330,32 +355,42 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
 
             {/* Color Selection Section */}
             {product.colors && product.colors.length > 0 && (
-              <div className="details-colors-section" style={{ marginTop: '1rem' }}>
-                <div className="colors-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <span className="section-label" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em', marginBottom: 0 }}>Select Color</span>
-                  <span className="selected-color-name" style={{ marginLeft: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>— {selectedColor}</span>
+              <div className="details-colors-section" style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
+                <div className="colors-header" style={{ display: 'flex', alignItems: 'center', marginBottom: '0.75rem' }}>
+                  <span className="section-label" style={{ textTransform: 'uppercase', fontSize: '0.85rem', fontWeight: 600, letterSpacing: '0.05em', marginBottom: 0 }}>COLOR</span>
                 </div>
-                <div className="colors-buttons-grid" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                  {product.colors.map((colorObj) => (
-                    <button
-                      key={colorObj.name}
-                      onClick={() => setSelectedColor(colorObj.name)}
-                      className={`color-select-btn ${selectedColor === colorObj.name ? 'active' : ''}`}
-                      style={{
-                        width: '32px',
-                        height: '32px',
-                        borderRadius: '50%',
-                        backgroundColor: colorObj.value,
-                        border: selectedColor === colorObj.name ? '2px solid var(--text-primary)' : '1px solid var(--border-medium)',
-                        cursor: 'pointer',
-                        transition: 'transform 0.2s, border-color 0.2s',
-                        padding: 0,
-                        transform: selectedColor === colorObj.name ? 'scale(1.1)' : 'none',
-                        boxShadow: 'inset 0 0 0 2px var(--bg-primary)'
-                      }}
-                      title={colorObj.name}
-                    />
-                  ))}
+                <div className="colors-buttons-grid">
+                  {product.colors.map((colorObj) => {
+                    const isSelected = selectedColor === colorObj.name;
+                    return (
+                      <button
+                        key={colorObj.name}
+                        onClick={() => setSelectedColor(colorObj.name)}
+                        className={`color-select-btn ${isSelected ? 'active' : ''}`}
+                        style={{
+                          padding: '0.85rem 1rem',
+                          borderRadius: '30px',
+                          border: isSelected ? '1px solid var(--accent-gold)' : '1px solid var(--border-medium)',
+                          backgroundColor: isSelected ? 'var(--text-primary)' : 'transparent',
+                          color: isSelected ? 'var(--bg-primary)' : 'var(--text-primary)',
+                          outline: isSelected ? '2px solid var(--accent-gold)' : 'none',
+                          outlineOffset: isSelected ? '2px' : '0',
+                          fontWeight: '600',
+                          fontSize: '0.8rem',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease',
+                          textAlign: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center'
+                        }}
+                      >
+                        {colorObj.name}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -401,7 +436,6 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
               <button 
                 className="btn-add-to-bag-bw action-add-to-cart"
                 onClick={handleAddToBag}
-                disabled={currentSizeStock === 0}
                 style={{ flex: 1, display: 'flex', gap: '0.75rem', justifyContent: 'center', alignItems: 'center' }}
               >
                 <ShoppingBag size={18} />
@@ -419,16 +453,46 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
               </button>
             </div>
 
-            {/* Product Care Note Section */}
-            <div className="details-care-note" style={{ marginTop: '1.25rem', opacity: 0.55, fontSize: '0.78rem', lineHeight: '1.4' }}>
-              <p style={{ margin: 0, fontStyle: 'italic' }}>
-                <strong>Note:</strong> This garment is crafted with premium fabrics. Dry clean only / non-washable. Handle with care to maintain the texture and structure.
-              </p>
+            {/* Product Care Note Section (Moved below Buy button) */}
+            <div className="details-care-note" style={{ marginTop: '0.45rem', borderTop: 'none', paddingTop: 0, opacity: 0.8, fontSize: '0.85rem', lineHeight: '1.5', fontStyle: 'italic', color: 'var(--text-muted)' }}>
+              {product.note || "This garment is crafted with premium fabrics. Dry clean only / non-washable. Handle with care to maintain the texture and structure."}
+            </div>
+
+            {/* Size Chart Section */}
+            <div className="details-size-chart-section" style={{ marginTop: '2.5rem', borderTop: '1px solid var(--border-light)', paddingTop: '2rem', marginBottom: '1.5rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+              <h4 style={{ textTransform: 'uppercase', letterSpacing: '0.05em', fontSize: '0.85rem', fontWeight: 600, marginBottom: '1rem', color: 'var(--text-primary)' }}>Size Chart</h4>
+              <div className="size-chart-img-wrapper" style={{ borderRadius: 'var(--radius-md)', overflow: 'hidden', border: '1px solid var(--border-light)', backgroundColor: '#ffffff', padding: '0.5rem', width: '100%', maxWidth: '100%', boxSizing: 'border-box' }}>
+                <img 
+                  src={sizeChartImg} 
+                  alt="Size Chart" 
+                  style={{ width: '100%', maxWidth: '100%', height: 'auto', display: 'block', objectFit: 'contain' }} 
+                />
+              </div>
             </div>
 
           </div>
 
         </div>
+
+        {/* You May Also Like Section */}
+        {recommendedProducts.length > 0 && (
+          <div className="you-may-like-section" style={{ marginTop: '5rem', borderTop: '1px solid var(--border-light)', paddingTop: '3rem', width: '100%' }}>
+            <h3 style={{ fontFamily: 'var(--font-header)', fontWeight: 700, fontSize: '1.8rem', textTransform: 'uppercase', marginBottom: '2.5rem', letterSpacing: '0.05em', color: 'var(--text-primary)' }}>
+              You May Also Like
+            </h3>
+            <div className="products-grid">
+              {recommendedProducts.map((p) => (
+                <ProductCard 
+                  key={p.id}
+                  product={p}
+                  onAddToCart={onAddToCart}
+                  onQuickView={onProductClick}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
       </div>
 
       {/* Mobile Fullscreen Slideshow Gallery Modal */}

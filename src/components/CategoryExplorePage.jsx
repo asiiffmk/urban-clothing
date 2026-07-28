@@ -46,7 +46,9 @@ export default function CategoryExplorePage({ activeCategory, onAddToCart, onQui
     window.scrollTo({ top: 0, behavior: 'instant' });
     async function fetchCategoryProducts() {
       try {
-        let query = supabase.from('products').select('*');
+        let query = supabase.from('products').select('*')
+          .neq('category', 'Shorts')
+          .neq('category', 'Innerwear');
         
         // Filter by category if not 'All'
         if (activeCategory && activeCategory.toLowerCase() !== 'all') {
@@ -54,7 +56,7 @@ export default function CategoryExplorePage({ activeCategory, onAddToCart, onQui
           query = query.ilike('category', activeCategory);
         }
         
-        const { data, error } = await query.order('id', { ascending: true });
+        const { data, error } = await query.order('created_at', { ascending: false });
         
         if (error) throw error;
         

@@ -1,9 +1,32 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import heroImg from '../assets/hero.png';
+import { supabase } from '../supabaseClient';
 import './Components.css';
 
 export default function Hero() {
+  const [mediaType, setMediaType] = useState('video');
+  const [mediaUrl, setMediaUrl] = useState('/hero-video.mp4');
+
+  useEffect(() => {
+    async function loadSettings() {
+      try {
+        const { data, error } = await supabase
+          .from('site_settings')
+          .select('*');
+        if (error) throw error;
+        if (data && data.length > 0) {
+          const typeRow = data.find(r => r.key === 'hero_media_type');
+          const urlRow = data.find(r => r.key === 'hero_media_url');
+          if (typeRow) setMediaType(typeRow.value);
+          if (urlRow) setMediaUrl(urlRow.value);
+        }
+      } catch (err) {
+        console.warn("Failed to fetch hero settings from site_settings (using default video):", err);
+      }
+    }
+    loadSettings();
+  }, []);
+
   // Framer Motion Entrance Animation Variants
   const contentVariants = {
     hidden: { opacity: 0, y: 30 },
@@ -24,22 +47,31 @@ export default function Hero() {
 
   return (
     <section className="hero-section">
-      {/* Editorial Right Background Video */}
+      {/* Editorial Background Video or Image */}
       <motion.div 
         className="hero-bg"
         initial="hidden"
         animate="visible"
         variants={bgVariants}
+        key={mediaUrl + mediaType} // Reset container element when configuration switches
       >
-        <video 
-          src="/hero-video.mp4" 
-          poster={heroImg}
-          autoPlay 
-          loop 
-          muted 
-          playsInline 
-          className="hero-image"
-        />
+        {mediaType === 'image' ? (
+          <img 
+            src={mediaUrl} 
+            alt="Hero Background" 
+            className="hero-image" 
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          <video 
+            src={mediaUrl} 
+            autoPlay 
+            loop 
+            muted 
+            playsInline 
+            className="hero-image"
+          />
+        )}
       </motion.div>
 
       {/* Main Content Area */}

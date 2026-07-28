@@ -1,25 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap');
 
 :root {
-  /* Color Palette - Luxury White Editorial */
-  --bg-primary: #FFFFFF;
-  --bg-secondary: #F7F7F9;
-  --bg-tertiary: #EFEFF2;
+  /* Color Palette - Luxury Black Editorial */
+  --bg-primary: #050505;
+  --bg-secondary: #0E0E10;
+  --bg-tertiary: #161619;
   
-  --text-primary: #000000; /* Pure black for maximum crispness and clarity */
-  --text-secondary: #2A2A2E; /* Much darker gray for descriptions */
-  --text-muted: #66666E; /* Darker muted text */
+  --text-primary: #FFFFFF; /* Crisp white for text readability on dark background */
+  --text-secondary: #CECED2; /* Light zinc gray for descriptions */
+  --text-muted: #8E8E93; /* Muted gray for lesser details */
   
-  --accent-gold: #C5A028; /* Elegant gold with good contrast on light bg */
-  --accent-gold-hover: #A07F1A;
-  --accent-bronze: #8C6D31;
-  --accent-white: #111113; /* For high contrast details */
+  --accent-gold: #D4AF37; /* Elegant vibrant gold for dark theme highlights */
+  --accent-gold-hover: #E5C158;
+  --accent-bronze: #B8860B;
+  --accent-white: #FFFFFF; /* High contrast details */
   
-  --border-light: rgba(0, 0, 0, 0.08);
-  --border-medium: rgba(0, 0, 0, 0.15);
+  --border-light: rgba(255, 255, 255, 0.09);
+  --border-medium: rgba(255, 255, 255, 0.18);
   
-  --glass-bg: rgba(255, 255, 255, 0.85);
-  --glass-border: rgba(0, 0, 0, 0.06);
+  --glass-bg: rgba(5, 5, 5, 0.82);
+  --glass-border: rgba(255, 255, 255, 0.08);
   --glass-blur: 16px;
   
   /* Fonts */
@@ -33,7 +33,7 @@
   /* System */
   --transition-smooth: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   --transition-fast: all 0.2s ease;
-  --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.06);
+  --shadow-premium: 0 20px 40px rgba(0, 0, 0, 0.5);
   --radius-sm: 4px;
   --radius-md: 8px;
   --radius-lg: 16px;

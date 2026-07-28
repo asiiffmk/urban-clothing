@@ -33,7 +33,10 @@ export default function ProductCard({ product, onAddToCart, onQuickView }) {
       <div className="new-arrival-actions">
         <button 
           className="new-arrival-btn btn-add-cart"
-          onClick={handleProductAction}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddToCart(product);
+          }}
         >
           Add to cart
         </button>

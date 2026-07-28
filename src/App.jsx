@@ -13,14 +13,22 @@ import CheckoutPage from './components/CheckoutPage';
 import CartPage from './components/CartPage';
 import CategoryExplorePage from './components/CategoryExplorePage';
 import ProductDetails from './components/ProductDetails';
-import AdminPanel from './components/AdminPanel';
 import { Check } from 'lucide-react';
 import './index.css';
+import { Routes, Route, useNavigate } from 'react-router-dom';
+import Admin from './Admin';
+import AuthModal from './components/AuthModal';
+import { productImages } from './utils/productImages';
 
 export default function App() {
+  const navigate = useNavigate();
   const [cartItems, setCartItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
+  
+  // User Authentication State
+  const [user, setUser] = useState(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   
   // Navigation Routing States
   const [activeView, setActiveView] = useState('home'); // 'home' | 'product-details' | 'admin'
@@ -29,15 +37,36 @@ export default function App() {
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState([]);
 
+  // Subscribe to Auth State Changes
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
   useEffect(() => {
     async function fetchAllProducts() {
       try {
         const { data, error } = await supabase
           .from('products')
           .select('*')
+          .neq('category', 'Shorts')
+          .neq('category', 'Innerwear')
           .order('created_at', { ascending: false });
         if (error) throw error;
-        setProducts(data || []);
+        
+        const mappedData = (data || []).map(p => ({
+          ...p,
+          image: productImages[p.image] || p.image,
+          secondary_image: productImages[p.secondary_image] || p.secondary_image
+        }));
+        setProducts(mappedData);
       } catch (err) {
         console.error("Error loading products in App.jsx:", err);
       }
@@ -58,10 +87,11 @@ export default function App() {
 
   // Add Item to Shopping Cart
   const handleAddToCart = (product, size, color) => {
+    const chosenSize = size || (product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'S');
     const chosenColor = color || (product.colors && product.colors.length > 0 ? product.colors[0].name : 'Obsidian');
     setCartItems((prevItems) => {
       const existingItemIndex = prevItems.findIndex(
-        (item) => item.id === product.id && item.selectedSize === size && item.selectedColor === chosenColor
+        (item) => item.id === product.id && item.selectedSize === chosenSize && item.selectedColor === chosenColor
       );
 
       if (existingItemIndex > -1) {
@@ -76,7 +106,7 @@ export default function App() {
             name: product.name,
             price: product.price,
             image: product.image,
-            selectedSize: size,
+            selectedSize: chosenSize,
             selectedColor: chosenColor,
             quantity: 1,
           },
@@ -84,7 +114,7 @@ export default function App() {
       }
     });
     
-    addNotification(`${product.name} (Size ${size}, ${chosenColor}) added to your bag.`);
+    addNotification(`${product.name} (Size ${chosenSize}, ${chosenColor}) added to your bag.`);
   };
 
   // Update Cart Quantity
@@ -125,152 +155,182 @@ export default function App() {
   };
 
   const handleViewChange = (view) => {
-    setActiveView(view);
-    window.scrollTo({ top: 0, behavior: 'instant' });
+    if (view === 'admin') {
+      navigate('/admin');
+    } else {
+      setActiveView(view);
+      window.scrollTo({ top: 0, behavior: 'instant' });
+    }
+  };
+
+  const handleNavigateToContact = () => {
+    setActiveView('home');
+    let attempts = 0;
+    const scrollInterval = setInterval(() => {
+      const contactSection = document.getElementById('contact');
+      if (contactSection) {
+        contactSection.scrollIntoView({ behavior: 'smooth' });
+        // Scroll again after 400ms to correct for any layout shifts after assets mount
+        setTimeout(() => {
+          contactSection.scrollIntoView({ behavior: 'smooth' });
+        }, 400);
+        clearInterval(scrollInterval);
+      }
+      attempts++;
+      if (attempts > 20) {
+        clearInterval(scrollInterval);
+      }
+    }, 60);
   };
 
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
   return (
-    <div className="app-container">
-      {/* Ambient Background Blur Blobs */}
-      <div className="ambient-blob ambient-blob-1"></div>
-      <div className="ambient-blob ambient-blob-2"></div>
-      
-      {/* Toast Notification Container */}
-      <div className="notification-container">
-        {notifications.map((n) => (
-          <div key={n.id} className="notification-toast">
-            <Check size={16} style={{ color: 'var(--accent-gold)' }} />
-            <span>{n.message}</span>
+    <Routes>
+      <Route path="/admin" element={<Admin />} />
+      <Route path="/*" element={
+        <div className="app-container">
+          {/* Ambient Background Blur Blobs */}
+          <div className="ambient-blob ambient-blob-1"></div>
+          <div className="ambient-blob ambient-blob-2"></div>
+          
+          {/* Toast Notification Container */}
+          <div className="notification-container">
+            {notifications.map((n) => (
+              <div key={n.id} className="notification-toast">
+                <Check size={16} style={{ color: 'var(--accent-gold)' }} />
+                <span>{n.message}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
 
-      {/* Primary Layout Header */}
-      <Header 
-        products={products}
-        onProductSelect={handleProductClick}
-        cartCount={totalCartCount} 
-        activeView={activeView}
-        onViewChange={handleViewChange}
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-      />
-      
-      {/* View Routing Switcher */}
-      {activeView === 'admin' ? (
-        <main style={{ paddingTop: 'var(--header-height)' }}>
-          <AdminPanel onBack={() => handleViewChange('home')} />
-        </main>
-      ) : activeView === 'product-details' ? (
-        <main style={{ paddingTop: 'var(--header-height)' }}>
-          <ProductDetails 
-            productId={selectedProductId}
-            onBack={() => {
-              if (previousView === 'explore') {
-                handleViewChange('explore');
-              } else {
-                setActiveView('home');
-                setTimeout(() => {
-                  const shopSection = document.getElementById('shop');
-                  if (shopSection) {
-                    shopSection.scrollIntoView({ behavior: 'smooth' });
-                  }
-                }, 100);
-              }
-            }}
-            onAddToCart={handleAddToCart}
+          {/* Auth Modal overlay */}
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
             addNotification={addNotification}
           />
-        </main>
-      ) : activeView === 'cart' ? (
-        <main style={{ paddingTop: 'var(--header-height)' }}>
-          <CartPage 
-            cartItems={cartItems}
-            onUpdateQuantity={handleUpdateQuantity}
-            onRemoveItem={handleRemoveItem}
-            onProceedToCheckout={() => handleViewChange('checkout')}
-            onBack={() => handleViewChange('home')}
-          />
-        </main>
-      ) : activeView === 'checkout' ? (
-        <main style={{ paddingTop: 'var(--header-height)' }}>
-          <CheckoutPage 
-            cartItems={cartItems}
-            onClearCart={handleClearCart}
-            onBack={() => handleViewChange('cart')}
-          />
-        </main>
-      ) : activeView === 'explore' ? (
-        <main style={{ paddingTop: 'var(--header-height)' }}>
-          <CategoryExplorePage 
-            activeCategory={activeFilter}
-            onAddToCart={handleAddToCart}
-            onQuickView={handleProductClick}
-            onBack={() => {
-              setActiveView('home');
-              setTimeout(() => {
-                const shopSection = document.getElementById('shop');
-                if (shopSection) {
-                  shopSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }, 100);
-            }}
-          />
-        </main>
-      ) : (
-        /* Home Landing Page View */
-        <main style={{ paddingTop: 'var(--header-height)' }}>
-          <Hero />
-          
-          {/* Category Showcase Section */}
-          <Categories 
-            onCategorySelect={(category) => {
-              setActiveFilter(category);
-              setTimeout(() => {
-                const shopSection = document.getElementById('shop');
-                if (shopSection) {
-                  shopSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }, 50);
-            }} 
-          />
 
-          {/* New Arrivals Section */}
-          <NewArrivals 
-            onQuickView={handleProductClick} 
-          />
-
-          {/* Collection Shop Grid Section */}
-          <ProductGrid 
-            activeFilter={activeFilter}
-            onFilterChange={setActiveFilter}
-            onAddToCart={handleAddToCart}
-            onQuickView={handleProductClick}
+          {/* Primary Layout Header */}
+          <Header 
+            products={products}
+            onProductSelect={handleProductClick}
+            cartCount={totalCartCount} 
+            activeView={activeView}
+            onViewChange={handleViewChange}
             searchTerm={searchTerm}
-            onExploreCategory={(category) => {
-              setActiveFilter(category);
-              setTimeout(() => {
-                const shopSection = document.getElementById('shop');
-                if (shopSection) {
-                  shopSection.scrollIntoView({ behavior: 'smooth' });
-                }
-              }, 50);
-            }}
+            onSearchChange={setSearchTerm}
+            user={user}
+            onOpenAuth={() => setAuthModalOpen(true)}
           />
           
-          <WhyUrbanClothing />
-          
-          <SizeRecommender />
-          
-          <ReviewSection />
-        </main>
-      )}
+          {/* View Routing Switcher */}
+          {activeView === 'product-details' ? (
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <ProductDetails 
+                productId={selectedProductId}
+                onBack={() => {
+                  if (previousView === 'explore') {
+                    handleViewChange('explore');
+                  } else if (previousView === 'cart') {
+                    handleViewChange('cart');
+                  } else {
+                    setActiveView('home');
+                    setTimeout(() => {
+                      const shopSection = document.getElementById('shop');
+                      if (shopSection) {
+                        shopSection.scrollIntoView({ behavior: 'smooth' });
+                      }
+                    }, 100);
+                  }
+                }}
+                onAddToCart={handleAddToCart}
+                addNotification={addNotification}
+                onProductClick={handleProductClick}
+              />
+            </main>
+          ) : activeView === 'cart' ? (
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <CartPage 
+                cartItems={cartItems}
+                products={products}
+                onUpdateQuantity={handleUpdateQuantity}
+                onRemoveItem={handleRemoveItem}
+                onProceedToCheckout={() => handleViewChange('checkout')}
+                onProductClick={handleProductClick}
+                onBack={() => handleViewChange('home')}
+              />
+            </main>
+          ) : activeView === 'checkout' ? (
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <CheckoutPage 
+                cartItems={cartItems}
+                onClearCart={handleClearCart}
+                onBack={() => handleViewChange('cart')}
+              />
+            </main>
+          ) : activeView === 'explore' ? (
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <CategoryExplorePage 
+                activeCategory={activeFilter}
+                onAddToCart={handleAddToCart}
+                onQuickView={handleProductClick}
+                onBack={() => {
+                  setActiveView('home');
+                  setTimeout(() => {
+                    const shopSection = document.getElementById('shop');
+                    if (shopSection) {
+                      shopSection.scrollIntoView({ behavior: 'smooth' });
+                    }
+                  }, 100);
+                }}
+              />
+            </main>
+          ) : (
+            /* Home Landing Page View */
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <Hero />
+              
+              {/* Category Showcase Section */}
+              <Categories 
+                onCategorySelect={(category) => {
+                  setActiveFilter(category);
+                  setActiveView('explore');
+                }} 
+              />
 
-      {/* Render Footer everywhere except Admin/Cart/Checkout tabs */}
-      {activeView !== 'admin' && activeView !== 'cart' && activeView !== 'checkout' && <Footer />}
+              {/* New Arrivals Section */}
+              <NewArrivals 
+                onQuickView={handleProductClick} 
+                onAddToCart={handleAddToCart}
+              />
 
-    </div>
+              {/* Collection Shop Grid Section */}
+              <ProductGrid 
+                activeFilter={activeFilter}
+                onFilterChange={setActiveFilter}
+                onAddToCart={handleAddToCart}
+                onQuickView={handleProductClick}
+                searchTerm={searchTerm}
+                onExploreCategory={(category) => {
+                  setActiveFilter(category);
+                  setActiveView('explore');
+                }}
+              />
+              
+              <WhyUrbanClothing />
+              
+              <SizeRecommender />
+              
+              <ReviewSection />
+            </main>
+          )}
+
+          {/* Primary Layout Footer */}
+          <Footer activeView={activeView} onContactClick={handleNavigateToContact} />
+
+        </div>
+      } />
+    </Routes>
   );
 }

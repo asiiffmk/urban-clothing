@@ -17,12 +17,17 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
   const [pincode, setPincode] = useState('');
   const [postOffice, setPostOffice] = useState('');
   const [district, setDistrict] = useState('');
-  const [state, setState] = useState('');
+  const [state, setState] = useState('Kerala');
   const [fullAddress, setFullAddress] = useState('');
+  const [note, setNote] = useState('');
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  const shipping = subtotal > 2000 || subtotal === 0 ? 0 : 150; // Rs. 150 shipping or free above Rs. 2000
-  const total = subtotal + shipping;
+  
+  // Shipping Fee logic: 50 Rs inside Kerala, 100 Rs outside Kerala per product/item
+  const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
+  const isKerala = state.toLowerCase().includes('kerala') || state.toLowerCase().trim() === 'kl';
+  const shippingFee = state ? (isKerala ? 50 : 100) * totalQuantity : 0;
+  const total = subtotal + shippingFee;
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
@@ -68,7 +73,8 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
             post_office: postOffice,
             district: district,
             state: state,
-            full_address: fullAddress
+            full_address: fullAddress,
+            note: note || null
           }
         ])
         .select()
@@ -177,7 +183,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
             </button>
           </div>
         ) : (
-          <div className="checkout-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '4rem', alignItems: 'start' }}>
+          <div className="checkout-grid-layout">
             
             {/* Left Column: Shipping details */}
             <div className="checkout-form-column">
@@ -197,7 +203,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   />
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="checkout-form-row">
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipPhone1">Primary Phone</label>
                     <input 
@@ -211,7 +217,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                     />
                   </div>
                   <div className="review-form-group" style={{ flex: 1 }}>
-                    <label htmlFor="shipPhone2">Secondary Phone (Optional)</label>
+                    <label htmlFor="shipPhone2">Secondary Phone</label>
                     <input 
                       type="tel" 
                       id="shipPhone2" 
@@ -219,11 +225,12 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                       value={phone2}
                       onChange={(e) => setPhone2(e.target.value)}
                       placeholder="Alternative contact number"
+                      required
                     />
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="checkout-form-row">
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipHouse">House Name/No.</label>
                     <input 
@@ -250,7 +257,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="checkout-form-row">
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipPO">Post Office</label>
                     <input 
@@ -277,7 +284,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div className="checkout-form-row">
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipDist">District</label>
                     <input 
@@ -317,6 +324,18 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   />
                 </div>
 
+                <div className="review-form-group">
+                  <label htmlFor="orderNote">Order Note / Special Delivery Instructions</label>
+                  <input 
+                    type="text" 
+                    id="orderNote" 
+                    className="review-form-input" 
+                    value={note}
+                    onChange={(e) => setNote(e.target.value)}
+                    placeholder="e.g. Please call before delivery, leave with neighbor..."
+                  />
+                </div>
+
               </form>
             </div>
 
@@ -341,13 +360,13 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   <span>Subtotal</span>
                   <span>Rs. {subtotal}</span>
                 </div>
-                <div className="checkout-bill-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
-                  <span>Shipping</span>
-                  <span>{shipping === 0 ? 'Complimentary' : `Rs. ${shipping}`}</span>
+                <div className="checkout-bill-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                  <span>Shipping Fee {totalQuantity ? `(${totalQuantity} ${totalQuantity > 1 ? 'items' : 'item'})` : ''}</span>
+                  <span>Rs. {shippingFee}</span>
                 </div>
                 <div className="checkout-bill-row total" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-medium)', paddingTop: '1.25rem', fontWeight: 700, fontSize: '1.1rem', textTransform: 'uppercase' }}>
                   <span>Total Amount</span>
-                  <span className="grand-total" style={{ color: '#000000' }}>Rs. {total}</span>
+                  <span className="grand-total" style={{ color: 'var(--accent-gold)' }}>Rs. {total}</span>
                 </div>
 
                 <button 

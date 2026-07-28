@@ -27,11 +27,36 @@ export default function Categories({ onCategorySelect }) {
       try {
         const { data, error } = await supabase
           .from('categories')
-          .select('*')
-          .order('name', { ascending: true });
+          .select('*');
         
         if (error) throw error;
-        setCategories(data || []);
+
+        const orderMap = {
+          'shirt': 1,
+          't-shirt': 2,
+          't shirt': 2,
+          'pant': 3,
+          'pants': 3,
+          'shorts': 4,
+          'innerwear': 5
+        };
+
+        const getOrder = (name) => {
+          const norm = (name || '').toLowerCase().trim();
+          if (orderMap[norm] !== undefined) return orderMap[norm];
+          
+          if (norm.includes('t-shirt') || norm.includes('t shirt')) return 2;
+          if (norm.includes('shirt')) return 1;
+          if (norm.includes('pant')) return 3;
+          if (norm.includes('shorts')) return 4;
+          if (norm.includes('innerwear')) return 5;
+          return 999;
+        };
+
+        const sortedData = (data || [])
+          .filter(cat => cat.id !== 'shorts' && cat.id !== 'innerwear')
+          .sort((a, b) => getOrder(a.name) - getOrder(b.name));
+        setCategories(sortedData);
       } catch (err) {
         console.error('Error fetching categories from Supabase:', err);
       } finally {
@@ -72,12 +97,6 @@ export default function Categories({ onCategorySelect }) {
         {/* Section Title */}
         <div style={{ position: 'relative' }}>
           <h2 className="section-title">Shop by <span className="highlight">Category</span></h2>
-          
-          {/* Scroll Indicator Prompt (Visible top-left above cards on mobile) */}
-          <div className="category-mobile-scroll-indicator">
-            <ArrowLeft size={13} />
-            <span>Scroll</span>
-          </div>
         </div>
         <p className="section-subtitle">
           Modern essentials designed for comfort, utility, and refined aesthetics.
