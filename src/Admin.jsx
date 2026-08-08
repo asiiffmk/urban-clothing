@@ -13,6 +13,11 @@ export default function Admin() {
       setIsAuthenticated(true);
     }
     setLoading(false);
+
+    // Automatically logout / clear session when leaving the admin panel
+    return () => {
+      sessionStorage.removeItem('admin_session');
+    };
   }, []);
 
   const handleLogin = () => {

@@ -122,7 +122,7 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
         <div className="checkout-spinner" style={{
           width: '36px',
           height: '36px',
-          border: '3px solid rgba(212,175,55,0.1)',
+          border: '3px solid rgba(255,255,255,0.1)',
           borderTopColor: 'var(--accent-gold)',
           borderRadius: '50%',
           animation: 'pulseGlow 1s infinite'

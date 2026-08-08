@@ -98,7 +98,7 @@ export default function CategoryExplorePage({ activeCategory, onAddToCart, onQui
             <div className="checkout-spinner" style={{
               width: '28px',
               height: '28px',
-              border: '2px solid rgba(212,175,55,0.1)',
+              border: '2px solid rgba(255,255,255,0.1)',
               borderTopColor: 'var(--accent-gold)',
               borderRadius: '50%',
               animation: 'pulseGlow 1s infinite'

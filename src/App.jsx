@@ -13,6 +13,8 @@ import CheckoutPage from './components/CheckoutPage';
 import CartPage from './components/CartPage';
 import CategoryExplorePage from './components/CategoryExplorePage';
 import ProductDetails from './components/ProductDetails';
+import FAQ from './components/FAQ';
+import RefundReturnPage from './components/RefundReturnPage';
 import { Check } from 'lucide-react';
 import './index.css';
 import { Routes, Route, useNavigate } from 'react-router-dom';
@@ -269,6 +271,14 @@ export default function App() {
                 onBack={() => handleViewChange('cart')}
               />
             </main>
+          ) : activeView === 'faq' ? (
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <FAQ onBack={() => handleViewChange('home')} />
+            </main>
+          ) : activeView === 'refund' ? (
+            <main style={{ paddingTop: 'var(--header-height)' }}>
+              <RefundReturnPage products={products} onBack={() => handleViewChange('home')} />
+            </main>
           ) : activeView === 'explore' ? (
             <main style={{ paddingTop: 'var(--header-height)' }}>
               <CategoryExplorePage 
@@ -327,7 +337,7 @@ export default function App() {
           )}
 
           {/* Primary Layout Footer */}
-          <Footer activeView={activeView} onContactClick={handleNavigateToContact} />
+          <Footer activeView={activeView} onContactClick={handleNavigateToContact} onViewChange={handleViewChange} />
 
         </div>
       } />

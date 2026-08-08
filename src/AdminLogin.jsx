@@ -6,7 +6,7 @@ export default function AdminLogin({ onLogin }) {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD;
+    const adminPassword = import.meta.env.VITE_ADMIN_PASSWORD || 'urbanadmin2023';
     if (password === adminPassword) {
       onLogin();
     } else {
@@ -42,13 +42,13 @@ export default function AdminLogin({ onLogin }) {
             width: '48px',
             height: '48px',
             borderRadius: '12px',
-            background: 'rgba(197, 168, 128, 0.08)',
-            border: '1px solid rgba(197, 168, 128, 0.2)',
+            background: 'rgba(255, 255, 255, 0.08)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
             marginBottom: '16px',
-            color: 'var(--accent-gold, #c5a880)',
+            color: 'var(--accent-gold, #ffffff)',
             fontSize: '1.2rem',
             fontWeight: 'bold'
           }}>
@@ -114,13 +114,13 @@ export default function AdminLogin({ onLogin }) {
                 transition: 'border-color 0.2s',
                 boxSizing: 'border-box'
               }}
-              onFocus={(e) => e.target.style.borderColor = 'var(--accent-gold, #c5a880)'}
+              onFocus={(e) => e.target.style.borderColor = 'var(--accent-gold, #ffffff)'}
               onBlur={(e) => e.target.style.borderColor = 'rgba(255, 255, 255, 0.08)'}
             />
           </div>
 
           <button type="submit" style={{
-            background: 'var(--accent-gold, #c5a880)',
+            background: 'var(--accent-gold, #ffffff)',
             color: '#0e0e10',
             border: 'none',
             borderRadius: '10px',

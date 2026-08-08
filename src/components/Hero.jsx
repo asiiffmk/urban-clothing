@@ -86,7 +86,7 @@ export default function Hero() {
             URBAN CLOTHING
           </h1>
           <p className="hero-tagline">
-            SINCE 2021
+            SINCE 2023
           </p>
           <div className="hero-cta">
             <motion.a 

@@ -1108,7 +1108,7 @@ export default function AdminPanel({ onBack, onLogout }) {
             </h3>
 
             {isEditing && (
-              <div style={{ background: 'rgba(212,175,55,0.1)', border: '1px solid var(--accent-gold)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: 'rgba(255,255,255,0.1)', border: '1px solid var(--accent-gold)', padding: '0.75rem 1rem', borderRadius: 'var(--radius-sm)', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontSize: '0.85rem', color: 'var(--accent-gold)' }}>
                   <strong>Edit Mode:</strong> Modifying details of this product model.
                 </span>
@@ -1511,7 +1511,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                 <div className="checkout-spinner" style={{
                   width: '32px',
                   height: '32px',
-                  border: '2px solid rgba(212,175,55,0.1)',
+                  border: '2px solid rgba(255,255,255,0.1)',
                   borderTopColor: 'var(--accent-gold)',
                   borderRadius: '50%',
                   animation: 'pulseGlow 1s infinite'
@@ -1662,7 +1662,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                 <div className="checkout-spinner" style={{
                   width: '32px',
                   height: '32px',
-                  border: '2px solid rgba(212,175,55,0.1)',
+                  border: '2px solid rgba(255,255,255,0.1)',
                   borderTopColor: 'var(--accent-gold)',
                   borderRadius: '50%',
                   animation: 'pulseGlow 1s infinite'
@@ -2085,7 +2085,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                 <div className="checkout-spinner" style={{
                   width: '24px',
                   height: '24px',
-                  border: '2px solid rgba(212,175,55,0.1)',
+                  border: '2px solid rgba(255,255,255,0.1)',
                   borderTopColor: 'var(--accent-gold)',
                   borderRadius: '50%',
                   animation: 'pulseGlow 1s infinite'

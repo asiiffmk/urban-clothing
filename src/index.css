@@ -10,9 +10,9 @@
   --text-secondary: #CECED2; /* Light zinc gray for descriptions */
   --text-muted: #8E8E93; /* Muted gray for lesser details */
   
-  --accent-gold: #D4AF37; /* Elegant vibrant gold for dark theme highlights */
-  --accent-gold-hover: #E5C158;
-  --accent-bronze: #B8860B;
+  --accent-gold: #FFFFFF; /* White accent replacing gold */
+  --accent-gold-hover: #E5E5E5; /* Light gray for hover */
+  --accent-bronze: #CCCCCC; /* Muted gray replacing bronze */
   --accent-white: #FFFFFF; /* High contrast details */
   
   --border-light: rgba(255, 255, 255, 0.09);
@@ -132,15 +132,15 @@ img {
 @keyframes pulseGlow {
   0% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0.7);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7);
   }
   70% {
     transform: scale(1);
-    box-shadow: 0 0 0 12px rgba(212, 175, 55, 0);
+    box-shadow: 0 0 0 12px rgba(255, 255, 255, 0);
   }
   100% {
     transform: scale(0.95);
-    box-shadow: 0 0 0 0 rgba(212, 175, 55, 0);
+    box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
   }
 }
 
