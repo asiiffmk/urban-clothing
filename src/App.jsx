@@ -106,7 +106,7 @@ export default function App() {
           {
             id: product.id,
             name: product.name,
-            price: product.price,
+            price: product.offer_price !== undefined && product.offer_price !== null ? product.offer_price : product.price,
             image: product.image,
             selectedSize: chosenSize,
             selectedColor: chosenColor,

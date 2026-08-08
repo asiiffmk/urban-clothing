@@ -14,6 +14,7 @@ CREATE TABLE IF NOT EXISTS public.products (
     name text NOT NULL,
     category text NOT NULL,
     price numeric NOT NULL,
+    offer_price numeric,
     rating numeric,
     reviews integer,
     image text,

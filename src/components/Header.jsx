@@ -187,7 +187,16 @@ export default function Header({
                       <img src={product.image} alt={product.name} className="desktop-search-dropdown-img" />
                       <div className="desktop-search-dropdown-meta">
                         <span className="desktop-search-dropdown-name">{product.name}</span>
-                        <span className="desktop-search-dropdown-price">Rs. {product.price}</span>
+                        <span className="desktop-search-dropdown-price" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                          {product.offer_price ? (
+                            <>
+                              <span style={{ color: 'var(--accent-gold)' }}>Rs. {product.offer_price}</span>
+                              <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.85em' }}>Rs. {product.price}</span>
+                            </>
+                          ) : (
+                            `Rs. ${product.price}`
+                          )}
+                        </span>
                       </div>
                     </div>
                   ))}
@@ -385,7 +394,16 @@ export default function Header({
                   <img src={product.image} alt={product.name} className="mobile-search-result-img" />
                   <div className="mobile-search-result-meta">
                     <span className="mobile-search-result-name">{product.name}</span>
-                    <span className="mobile-search-result-price">Rs. {product.price}</span>
+                    <span className="mobile-search-result-price" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                      {product.offer_price ? (
+                        <>
+                          <span style={{ color: 'var(--accent-gold)' }}>Rs. {product.offer_price}</span>
+                          <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.85em' }}>Rs. {product.price}</span>
+                        </>
+                      ) : (
+                        `Rs. ${product.price}`
+                      )}
+                    </span>
                   </div>
                 </div>
               ))}

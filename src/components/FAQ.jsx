@@ -30,14 +30,11 @@ export default function FAQ({ onBack }) {
       question: "When will I get my order?",
       answer: (
         <div>
-          <p style={{ marginBottom: '1.25rem', fontSize: '1.05rem', lineHeight: '1.7' }}>
-            All orders placed <strong>before 12:00 PM</strong> are processed and shipped on the <strong>same business day</strong>. Orders placed <strong>after 12:00 PM</strong> will be dispatched on the <strong>next working day</strong>. Please note that there is no shipping on Sundays or public holidays.
-          </p>
           <div style={{ fontSize: '1.05rem', lineHeight: '1.7' }}>
             Once dispatched, delivery times are as follows:
             <ul style={{ marginLeft: '1.5rem', marginTop: '0.5rem', listStyleType: 'disc' }}>
               <li><strong>Inside Kerala:</strong> Delivery usually takes <strong>1–3 working days</strong>.</li>
-              <li><strong>Outside Kerala:</strong> Delivery usually takes <strong>1–4 working days</strong>.</li>
+              <li><strong>Outside Kerala:</strong> Delivery usually takes <strong>3–7 working days</strong>.</li>
             </ul>
             We use express courier services for faster shipping. If a PIN code is not serviceable by our courier partner, we dispatch securely through India Post.
           </div>

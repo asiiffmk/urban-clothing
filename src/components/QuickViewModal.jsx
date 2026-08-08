@@ -49,7 +49,16 @@ export default function QuickViewModal({ product, isOpen, onClose, onAddToCart }
               </div>
             </div>
 
-            <div className="modal-price">Rs. {product.price}</div>
+            <div className="modal-price" style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+              {product.offer_price ? (
+                <>
+                  <span style={{ color: 'var(--accent-gold)' }}>Rs. {product.offer_price}</span>
+                  <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.7em' }}>Rs. {product.price}</span>
+                </>
+              ) : (
+                `Rs. ${product.price}`
+              )}
+            </div>
 
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', lineHeight: '1.6' }}>
               {product.description}

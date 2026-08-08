@@ -289,7 +289,16 @@ export default function ProductDetails({ productId, onBack, onAddToCart, addNoti
               </div>
             </div>
 
-            <div className="details-price-tag">Rs. {product.price}</div>
+            <div className="details-price-tag" style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+              {product.offer_price ? (
+                <>
+                  <span style={{ color: 'var(--accent-gold)' }}>Rs. {product.offer_price}</span>
+                  <span style={{ textDecoration: 'line-through', color: 'var(--text-muted)', fontSize: '0.75em' }}>Rs. {product.price}</span>
+                </>
+              ) : (
+                `Rs. ${product.price}`
+              )}
+            </div>
 
 
 

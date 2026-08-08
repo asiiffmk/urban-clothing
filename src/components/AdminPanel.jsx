@@ -126,13 +126,16 @@ export default function AdminPanel({ onBack, onLogout }) {
   const [productName, setProductName] = useState('');
   const [productCategory, setProductCategory] = useState('Shirts');
   const [productPrice, setProductPrice] = useState('');
-  const [imageList, setImageList] = useState(['catShirts']);
+  const [imageList, setImageList] = useState(['']);
   const [imageUploadStates, setImageUploadStates] = useState(['No file chosen']);
   const [productDesc, setProductDesc] = useState('');
   const [productNote, setProductNote] = useState('');
   const [isNewArrival, setIsNewArrival] = useState(false);
   const [detailList, setDetailList] = useState(['']);
-  const [colorList, setColorList] = useState([{ name: 'Obsidian', value: '#0E0E10' }]);
+  const [colorList, setColorList] = useState([{ name: '', value: '#000000' }]);
+  const [successModal, setSuccessModal] = useState({ isOpen: false, title: '', message: '' });
+  const [productOfferPrice, setProductOfferPrice] = useState('');
+  const [deleteConfirm, setDeleteConfirm] = useState({ isOpen: false, type: '', id: null, extraData: null });
 
   const handleAddImage = () => {
     setImageList([...imageList, '']);
@@ -369,21 +372,8 @@ export default function AdminPanel({ onBack, onLogout }) {
     }
   };
 
-  const handleReviewDelete = async (id, author) => {
-    if (window.confirm(`Are you sure you want to delete review by "${author}"?`)) {
-      try {
-        const { error } = await supabase
-          .from('reviews')
-          .delete()
-          .eq('id', id);
-        if (error) throw error;
-        alert('Review deleted successfully.');
-        fetchAllReviews();
-      } catch (err) {
-        console.error('Error deleting review:', err);
-        alert('Failed to delete review.');
-      }
-    }
+  const handleReviewDelete = (id, author) => {
+    setDeleteConfirm({ isOpen: true, type: 'review', id, extraData: { author } });
   };
 
   useEffect(() => {
@@ -456,6 +446,7 @@ export default function AdminPanel({ onBack, onLogout }) {
     setProductName(prod.name);
     setProductCategory(prod.category);
     setProductPrice(prod.price.toString());
+    setProductOfferPrice(prod.offer_price ? prod.offer_price.toString() : '');
     
     // Map dynamic images array
     const imgs = prod.images && prod.images.length > 0
@@ -486,38 +477,12 @@ export default function AdminPanel({ onBack, onLogout }) {
     setActiveTab('products');
   };
 
-  const handleProductDelete = async (id, name) => {
-    if (window.confirm(`Are you sure you want to delete product "${name}"?`)) {
-      try {
-        const { error } = await supabase
-          .from('products')
-          .delete()
-          .eq('id', id);
-        if (error) throw error;
-        alert(`Product "${name}" deleted successfully.`);
-        fetchProducts();
-      } catch (err) {
-        console.error('Error deleting product:', err);
-        alert('Failed to delete product.');
-      }
-    }
+  const handleProductDelete = (id, name) => {
+    setDeleteConfirm({ isOpen: true, type: 'product', id, extraData: { name } });
   };
 
-  const handleOrderDelete = async (id) => {
-    if (window.confirm(`Are you sure you want to delete order #${id.substring(0, 8).toUpperCase()}?`)) {
-      try {
-        const { error } = await supabase
-          .from('orders')
-          .delete()
-          .eq('id', id);
-        if (error) throw error;
-        alert("Order deleted successfully.");
-        fetchOrders();
-      } catch (err) {
-        console.error('Error deleting order:', err);
-        alert('Failed to delete order.');
-      }
-    }
+  const handleOrderDelete = (id) => {
+    setDeleteConfirm({ isOpen: true, type: 'order', id });
   };
 
   const cancelEdit = () => {
@@ -525,10 +490,11 @@ export default function AdminPanel({ onBack, onLogout }) {
     setEditingProductId(null);
     setProductName('');
     setProductPrice('');
+    setProductOfferPrice('');
     setProductDesc('');
     setIsNewArrival(false);
     setDetailList(['']);
-    setColorList([{ name: 'Obsidian', value: '#0E0E10' }]);
+    setColorList([{ name: '', value: '#000000' }]);
     setActiveTab('manage');
   };
 
@@ -607,6 +573,7 @@ export default function AdminPanel({ onBack, onLogout }) {
         name: productName,
         category: productCategory,
         price: parseFloat(productPrice),
+        offer_price: productOfferPrice ? parseFloat(productOfferPrice) : null,
         rating: 4.8, // default rating
         reviews: 0, // initial reviews count
         image: finalPrimaryImage,
@@ -629,7 +596,11 @@ export default function AdminPanel({ onBack, onLogout }) {
           .eq('id', editingProductId);
 
         if (error) throw error;
-        alert(`Product "${productName}" updated successfully!`);
+        setSuccessModal({
+          isOpen: true,
+          title: 'Product Updated',
+          message: `Product "${productName}" has been updated successfully.`
+        });
         
         // Reset and return to manage tab
         setIsEditing(false);
@@ -643,19 +614,24 @@ export default function AdminPanel({ onBack, onLogout }) {
           .insert([{ id: timestampId, ...newProduct }]);
 
         if (error) throw error;
-        alert(`Product "${productName}" uploaded successfully with dynamic stock configuration!`);
+        setSuccessModal({
+          isOpen: true,
+          title: 'Product Added',
+          message: `Product "${productName}" has been uploaded successfully with dynamic stock configuration.`
+        });
       }
       
       // Reset Form
       setProductName('');
       setProductPrice('');
+      setProductOfferPrice('');
       setProductDesc('');
       setProductNote('');
       setImageList(['']);
       setImageUploadStates(['No file chosen']);
       setIsNewArrival(false);
       setDetailList(['']);
-      setColorList([{ name: 'Obsidian', value: '#0E0E10' }]);
+      setColorList([{ name: '', value: '#000000' }]);
     } catch (err) {
       console.error('Error saving product:', err);
       alert('Failed to save product. Check database connection.');
@@ -727,8 +703,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                   URBAN CLOTHING
                 </h1>
                 <div style="font-size: 13px; font-weight: bold; margin: 10px 0; text-transform: uppercase; line-height: 1.5;">
-                  DATE : ${formatSlipDate(order.created_at)}<br/>
-                  CUSTOMER ID : ${customerIds[order.id] || 'N/A'}
+                  DATE : ${formatSlipDate(order.created_at)}
                 </div>
                 <h3 style="margin: 12px 0 0 0; font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border-top: 1px solid #000000; padding-top: 10px;">
                   CASH ON DELIVERY
@@ -836,8 +811,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                 URBAN CLOTHING
               </h1>
               <div style="font-size: 13px; font-weight: bold; margin: 10px 0; text-transform: uppercase; line-height: 1.5;">
-                DATE : ${formatSlipDate(order.created_at)}<br/>
-                CUSTOMER ID : ${customerIds[order.id] || 'N/A'}
+                DATE : ${formatSlipDate(order.created_at)}
               </div>
               <h3 style="margin: 12px 0 0 0; font-size: 14px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border-top: 1px solid #000000; padding-top: 10px;">
                 CASH ON DELIVERY
@@ -919,8 +893,7 @@ export default function AdminPanel({ onBack, onLogout }) {
             URBAN CLOTHING
           </h1>
           <div style="font-size: 12px; font-weight: bold; margin: 10px 0; text-transform: uppercase; line-height: 1.5;">
-            DATE : ${formatSlipDate(order.created_at)}<br/>
-            CUSTOMER ID : ${customerIds[order.id] || 'N/A'}
+            DATE : ${formatSlipDate(order.created_at)}
           </div>
           <h3 style="margin: 12px 0 0 0; font-size: 13px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; border-top: 1px solid #000000; padding-top: 10px;">
             CASH ON DELIVERY
@@ -1136,15 +1109,27 @@ export default function AdminPanel({ onBack, onLogout }) {
                 </div>
 
                 <div className="review-form-group">
-                  <label htmlFor="pPrice">Price ($)</label>
+                  <label htmlFor="pPrice">Original Price (Rs.)</label>
                   <input 
                     type="number" 
                     id="pPrice" 
                     className="review-form-input" 
                     value={productPrice}
                     onChange={(e) => setProductPrice(e.target.value)}
-                    placeholder="e.g. 45"
+                    placeholder="e.g. 85"
                     required
+                  />
+                </div>
+
+                <div className="review-form-group">
+                  <label htmlFor="pOfferPrice">Offer Price (Rs. - Optional)</label>
+                  <input 
+                    type="number" 
+                    id="pOfferPrice" 
+                    className="review-form-input" 
+                    value={productOfferPrice}
+                    onChange={(e) => setProductOfferPrice(e.target.value)}
+                    placeholder="e.g. 65"
                   />
                 </div>
 
@@ -1159,8 +1144,6 @@ export default function AdminPanel({ onBack, onLogout }) {
                     <option value="Shirts">Shirts</option>
                     <option value="Tshirts">Tshirts</option>
                     <option value="Pants">Pants</option>
-                    <option value="Shorts">Shorts</option>
-                    <option value="Innerwear">Innerwear</option>
                   </select>
                 </div>
 
@@ -1742,21 +1725,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                       {/* Expanded Details: printable slip */}
                       {isExpanded && (
                         <div className="order-slip-details" style={{ padding: '2rem', borderTop: '1px solid var(--border-light)', animation: 'slideDown 0.3s ease' }}>
-                          
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
-                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '0.5rem 1rem', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-light)' }}>
-                              <label style={{ fontSize: '0.85rem', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.05em', margin: 0 }}>
-                                Customer ID:
-                              </label>
-                              <input 
-                                type="text" 
-                                className="review-form-input" 
-                                placeholder="Enter ID to print" 
-                                value={customerIds[order.id] || ''} 
-                                onChange={(e) => setCustomerIds({ ...customerIds, [order.id]: e.target.value })}
-                                style={{ width: '180px', margin: 0, padding: '0.4rem 0.8rem', color: '#ffffff', background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-light)', borderRadius: '4px' }}
-                              />
-                            </div>
 
                             <div style={{ display: 'flex', gap: '1rem' }}>
                               <button 
@@ -1797,8 +1766,7 @@ export default function AdminPanel({ onBack, onLogout }) {
                                 URBAN CLOTHING
                               </h1>
                               <div style={{ fontSize: '0.85rem', fontWeight: 'bold', margin: '10px 0', textTransform: 'uppercase', color: '#000000', lineHeight: '1.5' }}>
-                                DATE : {formatSlipDate(order.created_at)}<br/>
-                                CUSTOMER ID : {customerIds[order.id] || 'N/A'}
+                                DATE : {formatSlipDate(order.created_at)}
                               </div>
                               <h3 style={{ margin: '12px 0 0 0', fontSize: '0.9rem', fontWeight: '800', letterSpacing: '1px', textTransform: 'uppercase', borderTop: '1px solid #000000', paddingTop: '10px', color: '#000000' }}>
                                 CASH ON DELIVERY
@@ -2158,6 +2126,121 @@ export default function AdminPanel({ onBack, onLogout }) {
                 ))}
               </div>
             )}
+          </div>
+        )}
+
+        {/* Custom Success Modal */}
+        {successModal.isOpen && (
+          <div className="modal-overlay" onClick={() => setSuccessModal({ ...successModal, isOpen: false })}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '450px', padding: '2.5rem', textAlign: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ 
+                  width: '64px', 
+                  height: '64px', 
+                  borderRadius: '50%', 
+                  background: 'rgba(212, 175, 55, 0.1)', 
+                  border: '2px solid var(--accent-gold)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  animation: 'pulseGlow 2s infinite'
+                }}>
+                  <CheckCircle2 size={36} color="var(--accent-gold)" />
+                </div>
+              </div>
+              <h3 style={{ fontSize: '1.5rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontFamily: 'var(--font-header)', letterSpacing: '0.05em' }}>
+                {successModal.title}
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                {successModal.message}
+              </p>
+              <button 
+                className="btn btn-accent" 
+                onClick={() => setSuccessModal({ ...successModal, isOpen: false })}
+                style={{ width: '100%', fontSize: '0.9rem', padding: '0.75rem' }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Custom Delete Confirmation Modal */}
+        {deleteConfirm.isOpen && (
+          <div className="modal-overlay" onClick={() => setDeleteConfirm({ isOpen: false, type: '', id: null, extraData: null })}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '400px', padding: '2.5rem', textAlign: 'center' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '1.5rem' }}>
+                <div style={{ 
+                  width: '64px', 
+                  height: '64px', 
+                  borderRadius: '50%', 
+                  background: 'rgba(220, 38, 38, 0.1)', 
+                  border: '2px solid #DC2626', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center'
+                }}>
+                  <Trash2 size={36} color="#DC2626" />
+                </div>
+              </div>
+              <h3 style={{ fontSize: '1.4rem', textTransform: 'uppercase', marginBottom: '0.75rem', fontFamily: 'var(--font-header)', letterSpacing: '0.05em' }}>
+                Delete {deleteConfirm.type === 'order' ? 'Order' : deleteConfirm.type === 'product' ? 'Product' : 'Review'}
+              </h3>
+              <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem', lineHeight: '1.6', fontSize: '0.95rem' }}>
+                {deleteConfirm.type === 'order' 
+                  ? 'Are you sure you want to permanently delete this order? This action cannot be undone.'
+                  : deleteConfirm.type === 'product'
+                  ? `Are you sure you want to permanently delete product "${deleteConfirm.extraData?.name}"?`
+                  : `Are you sure you want to permanently delete the review by "${deleteConfirm.extraData?.author}"?`
+                }
+              </p>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <button 
+                  type="button"
+                  className="btn btn-secondary" 
+                  onClick={() => setDeleteConfirm({ isOpen: false, type: '', id: null, extraData: null })}
+                  style={{ flex: 1, padding: '0.75rem', fontSize: '0.9rem', backgroundColor: 'transparent', borderColor: 'var(--border-light)', color: 'var(--text-secondary)' }}
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  className="btn" 
+                  onClick={async () => {
+                    const { type, id, extraData } = deleteConfirm;
+                    setDeleteConfirm({ isOpen: false, type: '', id: null, extraData: null });
+                    try {
+                      let tableName = type === 'order' ? 'orders' : type === 'product' ? 'products' : 'reviews';
+                      const { error } = await supabase
+                        .from(tableName)
+                        .delete()
+                        .eq('id', id);
+                      if (error) throw error;
+                      
+                      setSuccessModal({
+                        isOpen: true,
+                        title: type === 'order' ? 'Order Deleted' : type === 'product' ? 'Product Deleted' : 'Review Deleted',
+                        message: type === 'order' 
+                          ? 'The order has been successfully deleted.' 
+                          : type === 'product'
+                          ? `Product "${extraData?.name}" has been successfully deleted.`
+                          : `Review by "${extraData?.author}" has been successfully deleted.`
+                      });
+
+                      if (type === 'order') fetchOrders();
+                      else if (type === 'product') fetchProducts();
+                      else if (type === 'review') fetchAllReviews();
+                    } catch (err) {
+                      console.error(`Error deleting ${type}:`, err);
+                      alert(`Failed to delete ${type}.`);
+                    }
+                  }}
+                  style={{ flex: 1, padding: '0.75rem', fontSize: '0.9rem', backgroundColor: '#DC2626', borderColor: '#DC2626', color: '#ffffff' }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
           </div>
         )}
 
