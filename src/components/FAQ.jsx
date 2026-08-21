@@ -51,11 +51,11 @@ export default function FAQ({ onBack }) {
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.5rem' }}>
             <div style={{ padding: '1.5rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-light)', textAlign: 'center' }}>
               <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '0.5rem' }}>Inside Kerala</h4>
-              <p style={{ fontSize: '2rem', color: 'var(--accent-gold)', fontWeight: '800' }}>₹50</p>
+              <p style={{ fontSize: '2rem', color: 'var(--accent-gold)', fontWeight: '800' }}>₹50 <span style={{ fontSize: '1rem', fontWeight: '400', color: 'var(--text-muted)' }}>/ item</span></p>
             </div>
             <div style={{ padding: '1.5rem', background: 'var(--bg-tertiary)', borderRadius: '8px', border: '1px solid var(--border-light)', textAlign: 'center' }}>
               <h4 style={{ color: 'var(--text-muted)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.15em', marginBottom: '0.5rem' }}>Outside Kerala</h4>
-              <p style={{ fontSize: '2rem', color: 'var(--accent-gold)', fontWeight: '800' }}>₹100</p>
+              <p style={{ fontSize: '2rem', color: 'var(--accent-gold)', fontWeight: '800' }}>₹100 <span style={{ fontSize: '1rem', fontWeight: '400', color: 'var(--text-muted)' }}>/ item</span></p>
             </div>
           </div>
         </div>

@@ -93,10 +93,24 @@ function formatSlipDate(dateStr) {
   return `${day}-${month}-${year}`;
 }
 
+const courierLinks = {
+  'Delhivery': 'https://www.delhivery.com/track/package?trackingId=',
+  'BlueDart': 'https://www.bluedart.com/tracking/',
+  'DTDC': 'https://www.dtdc.in/tracking.asp?',
+  'India Post': 'https://www.indiapost.gov.in/vas/pages/trackconsignment.aspx',
+  'Ekart': 'https://ekartlogistics.com/shipmenttrack/',
+  'XpressBees': 'https://www.xpressbees.com/shipment/tracking/',
+  'Other': ''
+};
+
 export default function AdminPanel({ onBack, onLogout }) {
   // Navigation states
   const [activeTab, setActiveTab] = useState('products'); // 'products' | 'orders' | 'manage' | 'settings'
   const [customerIds, setCustomerIds] = useState({});
+  const [trackingInputs, setTrackingInputs] = useState({});
+  const [statusInputs, setStatusInputs] = useState({});
+  const [courierInputs, setCourierInputs] = useState({});
+  const [updatingOrders, setUpdatingOrders] = useState({});
 
   // Settings & Reviews management states
   const [heroMediaType, setHeroMediaType] = useState('video'); // 'video' | 'image'
@@ -288,6 +302,72 @@ export default function AdminPanel({ onBack, onLogout }) {
       });
     }
     setSelectedOrderIds(nextSelected);
+  };
+
+  const handleUpdateOrder = async (orderId, statusVal, courierVal, trackingIdVal) => {
+    if (statusVal === 'Shipped' && (!trackingIdVal || !trackingIdVal.trim())) {
+      alert('Tracking ID is required when status is Shipped.');
+      return;
+    }
+
+    setUpdatingOrders(prev => ({ ...prev, [orderId]: true }));
+    try {
+      const updateData = {
+        status: statusVal.toLowerCase(),
+        courier_name: courierVal,
+        tracking_id: trackingIdVal
+      };
+
+      if (statusVal === 'Shipped') {
+        updateData.shipped_at = new Date().toISOString();
+      } else if (statusVal === 'Delivered') {
+        updateData.delivered_at = new Date().toISOString();
+      }
+
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', orderId);
+      
+      if (error) throw error;
+      
+      // Update state
+      setOrders(prev => prev.map(o => o.id === orderId ? { ...o, ...updateData } : o));
+      alert('Order updated successfully!');
+    } catch (err) {
+      console.error('Error updating order:', err);
+      alert('Failed to update order.');
+    } finally {
+      setUpdatingOrders(prev => ({ ...prev, [orderId]: false }));
+    }
+  };
+
+  const formatWhatsAppPhone = (phone) => {
+    if (!phone) return '';
+    // Remove all non-digit characters
+    let cleaned = phone.replace(/\D/g, '');
+    // If it's a 10 digit number, prepend 91 (India country code)
+    if (cleaned.length === 10) {
+      cleaned = '91' + cleaned;
+    }
+    return cleaned;
+  };
+
+  const handleSendWhatsAppTracking = (order, trackingIdVal, courierVal) => {
+    if (!trackingIdVal || !trackingIdVal.trim()) {
+      alert('Please enter and save a Tracking ID first!');
+      return;
+    }
+    const phone = formatWhatsAppPhone(order.phone1);
+    if (!phone) {
+      alert('Customer phone number is missing!');
+      return;
+    }
+    const trackingUrl = courierLinks[courierVal] ? (courierLinks[courierVal] + trackingIdVal) : '';
+    const message = `Hi ${order.customer_name}! 👋\n\nYour Urban Clothing Store order #${order.id} has been shipped! 🎉\n\nCourier: ${courierVal}\nTracking ID: ${trackingIdVal}\n\nTrack here: ${trackingUrl}\n\nExpected delivery: 2-4 working days 📦\n\nThank you for shopping with us! 🛍️\n- Urban Clothing Store`;
+    const encodedMessage = encodeURIComponent(message);
+    const waUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+    window.open(waUrl, '_blank');
   };
 
   // Products CRUD states
@@ -1706,18 +1786,46 @@ export default function AdminPanel({ onBack, onLogout }) {
                         </div>
 
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                          <span className="order-status-tag confirmed" style={{
-                            padding: '0.2rem 0.6rem',
-                            borderRadius: '4px',
-                            background: 'rgba(0,255,136,0.1)',
-                            border: '1px solid rgba(0,255,136,0.3)',
-                            color: '#00ff88',
-                            fontSize: '0.75rem',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.05em'
-                          }}>
-                            {order.status}
-                          </span>
+                          {(() => {
+                            const statusVal = (order.status || 'pending').toLowerCase();
+                            let color = '#FFA500';
+                            let bg = 'rgba(255, 165, 0, 0.1)';
+                            let border = '1px solid rgba(255, 165, 0, 0.3)';
+                            
+                            if (statusVal === 'confirmed') {
+                              color = '#0066CC';
+                              bg = 'rgba(0, 102, 204, 0.1)';
+                              border = '1px solid rgba(0, 102, 204, 0.3)';
+                            } else if (statusVal === 'shipped') {
+                              color = '#FF6600';
+                              bg = 'rgba(255, 102, 0, 0.1)';
+                              border = '1px solid rgba(255, 102, 0, 0.3)';
+                            } else if (statusVal === 'delivered') {
+                              color = '#00AA00';
+                              bg = 'rgba(0, 170, 0, 0.1)';
+                              border = '1px solid rgba(0, 170, 0, 0.3)';
+                            } else if (statusVal === 'cancelled') {
+                              color = '#CC0000';
+                              bg = 'rgba(204, 0, 0, 0.1)';
+                              border = '1px solid rgba(204, 0, 0, 0.3)';
+                            }
+
+                            return (
+                              <span className="order-status-tag" style={{
+                                padding: '0.2rem 0.6rem',
+                                borderRadius: '4px',
+                                background: bg,
+                                border: border,
+                                color: color,
+                                fontSize: '0.75rem',
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em',
+                                fontWeight: 'bold'
+                              }}>
+                                {order.status}
+                              </span>
+                            );
+                          })()}
                           {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
                         </div>
                       </div>
@@ -1725,6 +1833,153 @@ export default function AdminPanel({ onBack, onLogout }) {
                       {/* Expanded Details: printable slip */}
                       {isExpanded && (
                         <div className="order-slip-details" style={{ padding: '2rem', borderTop: '1px solid var(--border-light)', animation: 'slideDown 0.3s ease' }}>
+                          {/* Tracking & Dispatch Section */}
+                          <div className="admin-tracking-section" style={{ 
+                            background: 'rgba(255, 255, 255, 0.02)', 
+                            border: '1px solid var(--border-light)', 
+                            padding: '1.25rem', 
+                            borderRadius: '8px', 
+                            marginBottom: '1.5rem',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '1rem'
+                          }}>
+                            <h4 style={{ margin: 0, fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.05em', color: 'var(--accent-gold)' }}>Dispatch & Order Status Management</h4>
+                            
+                            <div style={{
+                              display: 'flex',
+                              flexWrap: 'wrap',
+                              gap: '1rem',
+                              alignItems: 'flex-end'
+                            }}>
+                              {/* Status Dropdown */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: '1', minWidth: '150px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
+                                  Order Status:
+                                </label>
+                                <select
+                                  value={statusInputs[order.id] !== undefined ? statusInputs[order.id] : (order.status ? (order.status.charAt(0).toUpperCase() + order.status.slice(1)) : 'Pending')}
+                                  onChange={(e) => setStatusInputs({ ...statusInputs, [order.id]: e.target.value })}
+                                  style={{
+                                    padding: '0.45rem 0.75rem',
+                                    borderRadius: '4px',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid var(--border-light)',
+                                    color: '#ffffff',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {['Pending', 'Confirmed', 'Shipped', 'Delivered', 'Cancelled'].map(opt => (
+                                    <option key={opt} value={opt} style={{ background: '#1c1c1e', color: '#ffffff' }}>{opt}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Courier Dropdown */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: '1', minWidth: '150px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
+                                  Courier Service:
+                                </label>
+                                <select
+                                  value={courierInputs[order.id] !== undefined ? courierInputs[order.id] : (order.courier_name || 'Delhivery')}
+                                  onChange={(e) => setCourierInputs({ ...courierInputs, [order.id]: e.target.value })}
+                                  style={{
+                                    padding: '0.45rem 0.75rem',
+                                    borderRadius: '4px',
+                                    background: 'rgba(0,0,0,0.3)',
+                                    border: '1px solid var(--border-light)',
+                                    color: '#ffffff',
+                                    fontSize: '0.85rem',
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {['Delhivery', 'BlueDart', 'DTDC', 'India Post', 'Ekart', 'XpressBees', 'Other'].map(opt => (
+                                    <option key={opt} value={opt} style={{ background: '#1c1c1e', color: '#ffffff' }}>{opt}</option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              {/* Tracking ID Input */}
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', flex: '2', minWidth: '220px' }}>
+                                <label style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', margin: 0 }}>
+                                  Tracking ID (AWB):
+                                </label>
+                                <input 
+                                  type="text" 
+                                  placeholder="Enter Tracking ID" 
+                                  value={trackingInputs[order.id] !== undefined ? trackingInputs[order.id] : (order.tracking_id || '')}
+                                  onChange={(e) => setTrackingInputs({ ...trackingInputs, [order.id]: e.target.value })}
+                                  style={{ 
+                                    padding: '0.45rem 0.75rem', 
+                                    borderRadius: '4px', 
+                                    background: 'rgba(0,0,0,0.3)', 
+                                    border: '1px solid var(--border-light)', 
+                                    color: '#ffffff',
+                                    fontSize: '0.85rem'
+                                  }}
+                                />
+                              </div>
+
+                              {/* Action Buttons Container */}
+                              <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                <button 
+                                  className="btn"
+                                  onClick={() => {
+                                    const currentStatus = statusInputs[order.id] !== undefined ? statusInputs[order.id] : (order.status ? (order.status.charAt(0).toUpperCase() + order.status.slice(1)) : 'Pending');
+                                    const currentCourier = courierInputs[order.id] !== undefined ? courierInputs[order.id] : (order.courier_name || 'Delhivery');
+                                    const currentTracking = trackingInputs[order.id] !== undefined ? trackingInputs[order.id] : (order.tracking_id || '');
+                                    
+                                    if (currentStatus === 'Shipped' && (!currentTracking || !currentTracking.trim())) {
+                                      alert('Tracking ID is required when status is Shipped.');
+                                      return;
+                                    }
+
+                                    const phone = formatWhatsAppPhone(order.phone1);
+                                    if (phone) {
+                                      let message = '';
+                                      const trackingUrl = courierLinks[currentCourier] ? (courierLinks[currentCourier] + currentTracking) : '';
+                                      
+                                      if (currentStatus === 'Shipped') {
+                                        message = `Hi ${order.customer_name}! 👋\n\nYour Urban Clothing Store order #${order.id} has been shipped! 🎉\n\nCourier: ${currentCourier}\nTracking ID: ${currentTracking}\n\nTrack here: ${trackingUrl}\n\nExpected delivery: 2-4 working days 📦\n\nThank you for shopping with us! 🛍️\n- Urban Clothing Store`;
+                                      } else if (currentStatus === 'Delivered') {
+                                        message = `Hi ${order.customer_name}! 👋\n\nYour Urban Clothing Store order #${order.id} has been delivered! 🎉\n\nWe hope you love your new garments. Thank you for shopping with us! 🛍️\n- Urban Clothing Store`;
+                                      } else if (currentStatus === 'Confirmed') {
+                                        message = `Hi ${order.customer_name}! 👋\n\nYour Urban Clothing Store order #${order.id} has been confirmed! We are currently preparing it for shipment. We will send you the tracking details as soon as it's shipped. 📦\n\nThank you for shopping with us! 🛍️\n- Urban Clothing Store`;
+                                      } else {
+                                        message = `Hi ${order.customer_name}! 👋\n\nYour Urban Clothing Store order #${order.id} status has been updated to: ${currentStatus}.\n\nThank you!\n- Urban Clothing Store`;
+                                      }
+                                      
+                                      const encodedMessage = encodeURIComponent(message);
+                                      const waUrl = `https://wa.me/${phone}?text=${encodedMessage}`;
+                                      window.open(waUrl, '_blank');
+                                    } else {
+                                      alert('Customer phone number is missing!');
+                                    }
+                                  }}
+                                  style={{ 
+                                    padding: '0.45rem 1.2rem', 
+                                    fontSize: '0.8rem', 
+                                    height: 'auto', 
+                                    textTransform: 'uppercase', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '0.5rem',
+                                    backgroundColor: '#25D366', 
+                                    borderColor: '#25D366', 
+                                    color: '#ffffff',
+                                    fontWeight: 'bold',
+                                    borderRadius: '4px'
+                                  }}
+                                >
+                                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12.012 2c-5.506 0-9.989 4.478-9.99 9.984a9.96 9.96 0 0 0 1.333 4.982L2 22l5.233-1.371a9.936 9.936 0 0 0 4.779 1.22h.005c5.505 0 9.99-4.478 9.99-9.985C22 4.478 17.517 2 12.012 2zm0 18.29h-.003a8.275 8.275 0 0 1-4.218-1.155l-.303-.18-3.137.82.836-3.056-.198-.313a8.27 8.27 0 0 1-1.267-4.42c.001-4.57 3.72-8.287 8.292-8.287 2.213.001 4.293.864 5.856 2.43a8.22 8.22 0 0 1 2.428 5.864c-.002 4.57-3.72 8.287-8.293 8.287z"/>
+                                  </svg>
+                                  Send via WP
+                                </button>
+                              </div>
+                            </div>
+                          </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
 
                             <div style={{ display: 'flex', gap: '1rem' }}>
@@ -1851,119 +2106,9 @@ export default function AdminPanel({ onBack, onLogout }) {
           </div>
         )}
 
-        {/* Tab 4: Hero Settings */}
+        {/* Tab 4: Site Settings */}
         {activeTab === 'settings' && (
           <div className="glass-panel" style={{ padding: '2.5rem', maxWidth: '650px', margin: '0 auto', textAlign: 'left' }}>
-            <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', color: 'var(--text-primary)' }}>
-              Hero Section Media Settings
-            </h3>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                  BACKGROUND MEDIA TYPE
-                </label>
-                <div style={{ display: 'flex', gap: '2rem', marginTop: '0.25rem', color: 'var(--text-primary)' }}>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input 
-                      type="radio" 
-                      name="heroType" 
-                      value="video" 
-                      checked={heroMediaType === 'video'}
-                      onChange={() => setHeroMediaType('video')}
-                      style={{ accentColor: 'var(--accent-gold)' }}
-                    />
-                    Video Background
-                  </label>
-                  <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                    <input 
-                      type="radio" 
-                      name="heroType" 
-                      value="image" 
-                      checked={heroMediaType === 'image'}
-                      onChange={() => setHeroMediaType('image')}
-                      style={{ accentColor: 'var(--accent-gold)' }}
-                    />
-                    Image Background
-                  </label>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                  MEDIA SOURCE URL
-                </label>
-                <input 
-                  type="text" 
-                  className="review-form-input" 
-                  value={heroMediaUrl} 
-                  onChange={(e) => setHeroMediaUrl(e.target.value)}
-                  placeholder="e.g. /hero-video.mp4 or public URL"
-                  style={{ width: '100%', margin: 0, padding: '0.5rem', borderRadius: '4px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-light)', color: '#ffffff' }}
-                />
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
-                  Enter a relative local path or an absolute HTTP URL.
-                </span>
-              </div>
-
-              <div style={{ border: '1px dashed var(--border-light)', padding: '1.5rem', borderRadius: '8px', background: 'rgba(255,255,255,0.01)' }}>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>
-                  UPLOAD NEW BACKGROUND FILE
-                </label>
-                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                  <input 
-                    type="file" 
-                    accept="image/*,video/*"
-                    onChange={async (e) => {
-                      const file = e.target.files[0];
-                      if (!file) return;
-
-                      setHeroUploadStatus('Uploading...');
-                      try {
-                        const fileExt = file.name.split('.').pop();
-                        const fileName = `hero-${Date.now()}.${fileExt}`;
-                        const filePath = `${fileName}`;
-
-                        const { data, error } = await supabase.storage
-                          .from('product-images')
-                          .upload(filePath, file, {
-                            cacheControl: '3600',
-                            upsert: false
-                          });
-
-                        if (error) throw error;
-
-                        const { data: { publicUrl } } = supabase.storage
-                          .from('product-images')
-                          .getPublicUrl(filePath);
-
-                        setHeroMediaUrl(publicUrl);
-                        setHeroUploadStatus('Uploaded successfully!');
-                      } catch (err) {
-                        console.error('Error uploading hero file:', err);
-                        setHeroUploadStatus('Upload failed.');
-                        alert(`Upload failed: ${err.message || err}`);
-                      }
-                    }}
-                    style={{ fontSize: '0.8rem', color: 'var(--text-primary)' }}
-                  />
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600, color: heroUploadStatus.includes('success') ? '#00ff88' : 'var(--text-muted)' }}>
-                    {heroUploadStatus}
-                  </span>
-                </div>
-              </div>
-
-              <button 
-                className="btn btn-accent" 
-                onClick={handleSaveHeroSettings}
-                style={{ width: '100%', padding: '0.75rem', fontWeight: 700, fontSize: '0.9rem', marginTop: '1rem' }}
-              >
-                Save Background Settings
-              </button>
-            </div>
-
-            <hr style={{ border: 'none', borderTop: '1px solid var(--border-light)', margin: '3rem 0' }} />
-
             <h3 style={{ textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '1.5rem', borderBottom: '1px solid var(--border-light)', paddingBottom: '0.75rem', color: 'var(--text-primary)' }}>
               "Why Us" Columns Settings
             </h3>

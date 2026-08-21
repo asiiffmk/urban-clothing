@@ -46,7 +46,7 @@ export default function Footer({ activeView, onContactClick, onViewChange }) {
               flexWrap: 'wrap'
             }}>
               {/* Email Button */}
-              <a href="mailto:support@urbangents.com" className="btn btn-primary" style={{
+              <a href="mailto:urbanclothingconnect@gmail.com" className="btn btn-primary" style={{
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.5rem',

@@ -120,6 +120,16 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQuantit
       }
       
       // 4. Success state reset
+      try {
+        const placed = JSON.parse(localStorage.getItem('uc_placed_orders') || '[]');
+        if (!placed.includes(orderId)) {
+          placed.push(orderId);
+          localStorage.setItem('uc_placed_orders', JSON.stringify(placed));
+        }
+      } catch (e) {
+        console.error('Failed to save order ID to localStorage:', e);
+      }
+
       setOrderComplete(true);
       onClearCart();
       // Clear shipping inputs

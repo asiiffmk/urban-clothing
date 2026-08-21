@@ -70,12 +70,16 @@ if (!isSupabaseConfigured) {
         id: 1,
         hero_title: 'SARTORIAL REFINEMENT',
         hero_subtitle: 'MINIMALIST LUXURY TAILORED FOR THE MODERN MAN',
-        contact_email: 'support@urbangents.com',
+        contact_email: 'urbanclothingconnect@gmail.com',
         contact_phone: '+1 (555) 019-2834',
         address: '148 Vanguard Ave, Suite 300, New York, NY'
       }]);
       setStorageItem('uc_mock_orders', []);
       setStorageItem('uc_mock_order_items', []);
+      setStorageItem('uc_mock_profiles', []);
+      setStorageItem('uc_mock_addresses', []);
+      setStorageItem('uc_mock_wishlist', []);
+      setStorageItem('uc_mock_users', []);
       setStorageItem('uc_mock_initialized', true);
     }
   };
@@ -112,7 +116,7 @@ if (!isSupabaseConfigured) {
         const newRows = rows.map(row => {
           const newRow = { ...row };
           if (newRow.id === undefined) {
-            newRow.id = Math.floor(Math.random() * 1000000000);
+            newRow.id = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.floor(Math.random() * 1000000000).toString();
           }
           if (newRow.created_at === undefined) {
             newRow.created_at = new Date().toISOString();
@@ -150,7 +154,7 @@ if (!isSupabaseConfigured) {
             updatedData[index] = { ...updatedData[index], ...row };
           } else {
             updatedData.push({
-              id: Math.floor(Math.random() * 1000000000),
+              id: typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.floor(Math.random() * 1000000000).toString(),
               created_at: new Date().toISOString(),
               ...row
             });
@@ -234,6 +238,10 @@ if (!isSupabaseConfigured) {
         isSingle = true;
         return builder;
       },
+      maybeSingle: () => {
+        isSingle = true;
+        return builder;
+      },
       insert: (data) => {
         operation = 'insert';
         operationData = data;
@@ -267,18 +275,155 @@ if (!isSupabaseConfigured) {
     return builder;
   };
 
+  const authListeners = [];
+
   client = {
     from: createMockBuilder,
     auth: {
-      getSession: async () => ({ data: { session: null }, error: null }),
-      onAuthStateChange: () => ({ data: { subscription: { unsubscribe: () => {} } } }),
-      signInWithPassword: async (credentials) => {
-        return { data: { user: { email: credentials.email, id: 'mock-user-id' } }, error: null };
+      getSession: async () => {
+        const session = getStorageItem('uc_mock_session', null);
+        return { data: { session }, error: null };
       },
-      signUp: async (credentials) => {
-        return { data: { user: { email: credentials.email, id: 'mock-user-id' } }, error: null };
+      onAuthStateChange: (callback) => {
+        authListeners.push(callback);
+        const session = getStorageItem('uc_mock_session', null);
+        callback('INITIAL_SESSION', session);
+        return {
+          data: {
+            subscription: {
+              unsubscribe: () => {
+                const idx = authListeners.indexOf(callback);
+                if (idx > -1) authListeners.splice(idx, 1);
+              }
+            }
+          }
+        };
       },
-      signOut: async () => ({ error: null })
+      signInWithPassword: async ({ email, password }) => {
+        const users = getStorageItem('uc_mock_users', []);
+        const user = users.find(u => u.email === email && u.password === password);
+        if (!user) {
+          return { data: { session: null }, error: { message: 'Invalid email or password' } };
+        }
+        const session = {
+          user: {
+            id: user.id,
+            email: user.email,
+            user_metadata: { full_name: user.full_name, phone: user.phone }
+          }
+        };
+        setStorageItem('uc_mock_session', session);
+        authListeners.forEach(l => l('SIGNED_IN', session));
+        return { data: session, error: null };
+      },
+      signUp: async ({ email, password, options }) => {
+        const users = getStorageItem('uc_mock_users', []);
+        if (users.some(u => u.email === email)) {
+          return { data: null, error: { message: 'Email already exists' } };
+        }
+        const fullName = options?.data?.full_name || email.split('@')[0];
+        const phone = options?.data?.phone || '';
+        const newUser = {
+          id: `mock-user-${Math.floor(Math.random() * 1000000000)}`,
+          email,
+          password,
+          full_name: fullName,
+          phone
+        };
+        users.push(newUser);
+        setStorageItem('uc_mock_users', users);
+
+        // Also add profile to profiles
+        const profiles = getStorageItem('uc_mock_profiles', []);
+        profiles.push({
+          id: newUser.id,
+          user_id: newUser.id,
+          full_name: fullName,
+          phone,
+          created_at: new Date().toISOString()
+        });
+        setStorageItem('uc_mock_profiles', profiles);
+
+        const session = {
+          user: {
+            id: newUser.id,
+            email: newUser.email,
+            user_metadata: { full_name: fullName, phone }
+          }
+        };
+        setStorageItem('uc_mock_session', session);
+        authListeners.forEach(l => l('SIGNED_IN', session));
+        return { data: session, error: null };
+      },
+      signInWithOAuth: async ({ provider }) => {
+        const mockUser = {
+          id: 'mock-google-user-id',
+          email: 'google-user@example.com',
+          user_metadata: {
+            full_name: 'Google User',
+            phone: '+1 (555) 019-2834'
+          }
+        };
+        const session = { user: mockUser };
+        setStorageItem('uc_mock_session', session);
+
+        // Ensure profile exists
+        const profiles = getStorageItem('uc_mock_profiles', []);
+        if (!profiles.some(p => p.id === mockUser.id)) {
+          profiles.push({
+            id: mockUser.id,
+            user_id: mockUser.id,
+            full_name: 'Google User',
+            phone: '+1 (555) 019-2834',
+            created_at: new Date().toISOString()
+          });
+          setStorageItem('uc_mock_profiles', profiles);
+        }
+
+        authListeners.forEach(l => l('SIGNED_IN', session));
+        return { data: session, error: null };
+      },
+      signOut: async () => {
+        setStorageItem('uc_mock_session', null);
+        authListeners.forEach(l => l('SIGNED_OUT', null));
+        return { error: null };
+      },
+      updateUser: async ({ password, data }) => {
+        const session = getStorageItem('uc_mock_session', null);
+        if (!session || !session.user) {
+          return { data: null, error: { message: 'Not authenticated' } };
+        }
+
+        // Update user in users list
+        const users = getStorageItem('uc_mock_users', []);
+        const idx = users.findIndex(u => u.id === session.user.id);
+        if (idx > -1) {
+          if (password) users[idx].password = password;
+          if (data?.full_name) users[idx].full_name = data.full_name;
+          if (data?.phone) users[idx].phone = data.phone;
+          setStorageItem('uc_mock_users', users);
+        }
+
+        // Update profile in profiles list
+        const profiles = getStorageItem('uc_mock_profiles', []);
+        const pIdx = profiles.findIndex(p => p.id === session.user.id);
+        if (pIdx > -1) {
+          if (data?.full_name) profiles[pIdx].full_name = data.full_name;
+          if (data?.phone) profiles[pIdx].phone = data.phone;
+          setStorageItem('uc_mock_profiles', profiles);
+        }
+
+        // Update active session metadata
+        if (data?.full_name) session.user.user_metadata.full_name = data.full_name;
+        if (data?.phone) session.user.user_metadata.phone = data.phone;
+        setStorageItem('uc_mock_session', session);
+        authListeners.forEach(l => l('USER_UPDATED', session));
+
+        return { data: { user: session.user }, error: null };
+      },
+      resetPasswordForEmail: async (email) => {
+        return { data: {}, error: null };
+      }
     },
     storage: {
       from: () => ({

@@ -1,4 +1,4 @@
-import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Components.css';
 
 export default function ProductCard({ product, onAddToCart, onQuickView }) {
@@ -35,6 +35,7 @@ export default function ProductCard({ product, onAddToCart, onQuickView }) {
             Sale
           </span>
         )}
+
         <img 
           src={product.image} 
           alt={product.name} 
@@ -69,6 +70,7 @@ export default function ProductCard({ product, onAddToCart, onQuickView }) {
         >
           Add to cart
         </button>
+        
         <button 
           className="new-arrival-btn btn-buy-now"
           onClick={handleProductAction}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ShoppingBag, Search, User, Menu, X, ArrowLeft } from 'lucide-react';
+import { ShoppingBag, Search, Menu, X, ArrowLeft } from 'lucide-react';
 import logoImg from '../assets/logo.png';
-import { supabase } from '../supabaseClient';
+import { useNavigate } from 'react-router-dom';
 import './Components.css';
 
 export default function Header({ 
@@ -11,39 +11,14 @@ export default function Header({
   activeView, 
   onViewChange, 
   searchTerm, 
-  onSearchChange,
-  user,
-  onOpenAuth
+  onSearchChange
 }) {
+  const navigate = useNavigate();
+
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchActive, setSearchActive] = useState(false);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
-  const [profileMenuOpen, setProfileMenuOpen] = useState(false);
-  const profileMenuRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target)) {
-        setProfileMenuOpen(false);
-      }
-    };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  const handleUserClick = () => {
-    if (user) {
-      setProfileMenuOpen(!profileMenuOpen);
-    } else {
-      onOpenAuth();
-    }
-  };
-
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    setProfileMenuOpen(false);
-  };
 
   const searchStartScrollY = useRef(0);
 
@@ -225,66 +200,6 @@ export default function Header({
               <Search size={20} />
             </button>
             
-            <div className="profile-menu-wrapper" ref={profileMenuRef} style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-              <button 
-                className={`action-btn user-profile-btn ${user ? 'logged-in' : ''}`} 
-                onClick={handleUserClick}
-                aria-label={user ? "User Profile" : "Sign In / Sign Up"}
-                title={user ? `Signed in as ${user.email}` : "Sign In / Sign Up"}
-                style={{ color: user ? 'var(--accent-gold)' : 'inherit' }}
-              >
-                <User size={20} />
-              </button>
-              
-              {user && profileMenuOpen && (
-                <div className="profile-dropdown glass-panel" style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: '100%',
-                  marginTop: '0.5rem',
-                  background: 'var(--bg-primary)',
-                  border: '1px solid var(--border-medium)',
-                  padding: '1rem 1.25rem',
-                  minWidth: '220px',
-                  boxShadow: 'var(--shadow-premium)',
-                  zIndex: 1000,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '0.75rem',
-                  animation: 'authSlideUp 0.2s ease-out'
-                }}>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                    Signed in as
-                  </div>
-                  <div style={{ fontSize: '0.85rem', fontWeight: '500', color: 'var(--text-primary)', wordBreak: 'break-all', marginBottom: '0.25rem' }}>
-                    {user.email}
-                  </div>
-                  <hr style={{ border: 'none', borderBottom: '1px solid var(--border-light)', margin: '0' }} />
-                  <button 
-                    onClick={handleSignOut}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#C53030',
-                      cursor: 'pointer',
-                      fontFamily: 'var(--font-body)',
-                      fontSize: '0.85rem',
-                      fontWeight: '600',
-                      textAlign: 'left',
-                      padding: '0.25rem 0',
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.05em',
-                      transition: 'var(--transition-fast)'
-                    }}
-                    onMouseEnter={(e) => e.target.style.color = '#9B2C2C'}
-                    onMouseLeave={(e) => e.target.style.color = '#C53030'}
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
-            </div>
-            
             <button 
               className="action-btn" 
               onClick={() => onViewChange('cart')}
@@ -320,22 +235,6 @@ export default function Header({
           <button className="mobile-menu-link" onClick={() => handleNavClick('home', 'shop')}>Shop</button>
           <button className="mobile-menu-link" onClick={() => handleNavClick('home', 'story')}>Our Story</button>
           <button className="mobile-menu-link" onClick={() => handleNavClick('home', 'contact')}>Contact</button>
-          {user ? (
-            <>
-              <div className="mobile-menu-user-info" style={{ padding: '0.75rem 1rem', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                SIGNED IN AS: {user.email}
-              </div>
-              <button className="mobile-menu-link" style={{ color: '#C53030' }} onClick={async () => {
-                await supabase.auth.signOut();
-                setMobileMenuOpen(false);
-              }}>Sign Out</button>
-            </>
-          ) : (
-            <button className="mobile-menu-link" style={{ color: 'var(--accent-gold)' }} onClick={() => {
-              setMobileMenuOpen(false);
-              onOpenAuth();
-            }}>Sign In / Sign Up</button>
-          )}
         </nav>
 
         <div className="mobile-menu-footer">

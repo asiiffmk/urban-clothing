@@ -53,7 +53,8 @@ CREATE TABLE IF NOT EXISTS public.orders (
     post_office text,
     district text,
     state text,
-    full_address text
+    full_address text,
+    tracking_id text
 );
 
 -- Create Order Items Table
@@ -121,12 +122,15 @@ CREATE POLICY "Allow public insert on reviews" ON public.reviews
 CREATE POLICY "Allow public delete on reviews" ON public.reviews
     FOR DELETE TO anon, authenticated USING (true);
 
--- Orders: Anyone can create, read, and delete orders (anonymous checkouts and admin cleaning)
+-- Orders: Anyone can create, read, update, and delete orders (anonymous checkouts, saving tracking IDs, and admin cleaning)
 CREATE POLICY "Allow public read on orders" ON public.orders
     FOR SELECT TO anon, authenticated USING (true);
 
 CREATE POLICY "Allow public insert on orders" ON public.orders
     FOR INSERT TO anon, authenticated WITH CHECK (true);
+
+CREATE POLICY "Allow public update on orders" ON public.orders
+    FOR UPDATE TO anon, authenticated USING (true) WITH CHECK (true);
 
 CREATE POLICY "Allow public delete on orders" ON public.orders
     FOR DELETE TO anon, authenticated USING (true);

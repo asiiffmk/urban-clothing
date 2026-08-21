@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { CheckCircle2, ArrowLeft, CreditCard } from 'lucide-react';
+﻿import React, { useState } from 'react';
+import { CheckCircle2, ArrowLeft } from 'lucide-react';
 import { supabase } from '../supabaseClient';
 import './Components.css';
 
 export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
-
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [orderComplete, setOrderComplete] = useState(false);
   const [confirmedOrderId, setConfirmedOrderId] = useState('');
@@ -18,29 +17,18 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
   const [pincode, setPincode] = useState('');
   const [postOffice, setPostOffice] = useState('');
   const [district, setDistrict] = useState('');
-  const [state, setState] = useState('Kerala');
+  const [state, setState] = useState('');
   const [fullAddress, setFullAddress] = useState('');
-  const [note, setNote] = useState('');
 
   const subtotal = cartItems.reduce((acc, item) => acc + (item.price * item.quantity), 0);
-  
-  // Shipping Fee logic: 50 Rs inside Kerala, 100 Rs outside Kerala per product/item
-  const totalQuantity = cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  const isKerala = state.toLowerCase().includes('kerala') || state.toLowerCase().trim() === 'kl';
-  const shippingFee = isKerala ? 50 * totalQuantity : 100 * totalQuantity;
-  const total = subtotal + shippingFee;
+  const shipping = subtotal > 2000 || subtotal === 0 ? 0 : 150; // Rs. 150 shipping or free above Rs. 2000
+  const total = subtotal + shipping;
 
   const handleCheckoutSubmit = async (e) => {
     e.preventDefault();
     if (cartItems.length === 0) return;
     setIsCheckingOut(true);
     
-    if (!window.Razorpay) {
-      alert("Razorpay payment gateway SDK is not loaded. Please verify your internet connection or check if scripts are blocked.");
-      setIsCheckingOut(false);
-      return;
-    }
-
     try {
       // 1. Validate Stock for all items first
       for (const item of cartItems) {
@@ -63,129 +51,85 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
           return;
         }
       }
-
-      // 2. Configure and Open Razorpay standard checkout
-      const razorpayKey = import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TOvyM0cGMSJjWz';
-
-      const options = {
-        key: razorpayKey,
-        amount: Math.round(total * 100), // in paise
-        currency: 'INR',
-        name: 'Urban Clothing',
-        description: `Payment for Order (${totalQuantity} item${totalQuantity > 1 ? 's' : ''})`,
-        prefill: {
-          name: customerName,
-          contact: phone1,
-        },
-        theme: {
-          color: '#0a0a0c' // Sleek dark aesthetic
-        },
-        handler: async function (response) {
-          try {
-            // 3. Save order to database upon successful payment
-            const { data: orderData, error: orderError } = await supabase
-              .from('orders')
-              .insert([
-                {
-                  total_price: total,
-                  status: 'confirmed',
-                  customer_name: customerName,
-                  phone1: phone1,
-                  phone2: phone2 || null,
-                  house_name: houseName,
-                  local_place: localPlace,
-                  pincode: pincode,
-                  post_office: postOffice,
-                  district: district,
-                  state: state,
-                  full_address: fullAddress,
-                  note: note || null,
-                  payment_method: 'Razorpay',
-                  tracking_id: response.razorpay_payment_id // Store payment ID as reference/tracking
-                }
-              ])
-              .select()
-              .single();
-            
-            if (orderError) throw orderError;
-            
-            const orderId = orderData.id;
-            const displayRef = orderId.substring(0, 8).toUpperCase();
-            
-            // 4. Insert order items & Deduct Stock
-            for (const item of cartItems) {
-              const { error: itemInsertError } = await supabase
-                .from('order_items')
-                .insert([
-                  {
-                    order_id: orderId,
-                    product_id: item.id,
-                    product_name: item.name,
-                    size: item.selectedSize,
-                    color: item.selectedColor || null,
-                    quantity: item.quantity,
-                    price: item.price
-                  }
-                ]);
-              
-              if (itemInsertError) throw itemInsertError;
-              
-              // Decrement sizes stock map
-              const { data: prod } = await supabase
-                .from('products')
-                .select('sizes_stock')
-                .eq('id', item.id)
-                .single();
-                
-              if (prod) {
-                const updatedStock = { ...prod.sizes_stock };
-                const currentStock = updatedStock[item.selectedSize] !== undefined ? updatedStock[item.selectedSize] : 4;
-                updatedStock[item.selectedSize] = Math.max(0, currentStock - item.quantity);
-                
-                const { error: stockUpdateError } = await supabase
-                  .from('products')
-                  .update({ sizes_stock: updatedStock })
-                  .eq('id', item.id);
-                  
-                if (stockUpdateError) throw stockUpdateError;
-              }
-            }
-            
-            // 5. Save order UUID reference to localStorage for tracking
-            try {
-              const placed = JSON.parse(localStorage.getItem('uc_placed_orders') || '[]');
-              if (!placed.includes(orderId)) {
-                placed.push(orderId);
-                localStorage.setItem('uc_placed_orders', JSON.stringify(placed));
-              }
-            } catch (err) {
-              console.error('Failed to save order ID to localStorage:', err);
-            }
-
-            setConfirmedOrderId(displayRef);
-            setOrderComplete(true);
-            onClearCart();
-            
-          } catch (dbError) {
-            console.error("Failed to complete order submission after payment:", dbError);
-            alert(`Payment (ID: ${response.razorpay_payment_id}) was successful, but we failed to record your order details in our database. Please contact support with your payment ID.`);
-          } finally {
-            setIsCheckingOut(false);
+      
+      // 2. Insert order details
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert([
+          {
+            total_price: total,
+            status: 'confirmed',
+            customer_name: customerName,
+            phone1: phone1,
+            phone2: phone2 || null,
+            house_name: houseName,
+            local_place: localPlace,
+            pincode: pincode,
+            post_office: postOffice,
+            district: district,
+            state: state,
+            full_address: fullAddress
           }
-        },
-        modal: {
-          ondismiss: function () {
-            setIsCheckingOut(false);
-          }
-        }
-      };
-
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+        ])
+        .select()
+        .single();
+      
+      if (orderError) throw orderError;
+      
+      const orderId = orderData.id;
+      setConfirmedOrderId(orderId);
+      
+      // 3. Insert order items & Deduct Stock
+      for (const item of cartItems) {
+        // Insert item record
+        const { error: itemInsertError } = await supabase
+          .from('order_items')
+          .insert([
+            {
+              order_id: orderId,
+              product_id: item.id,
+              product_name: item.name,
+              size: item.selectedSize,
+              color: item.selectedColor || null,
+              quantity: item.quantity,
+              price: item.price
+            }
+          ]);
+        
+        if (itemInsertError) throw itemInsertError;
+        
+        // Fetch current stock to subtract
+        const { data: currentProduct } = await supabase
+          .from('products')
+          .select('sizes_stock')
+          .eq('id', item.id)
+          .single();
+          
+        const stockMap = currentProduct.sizes_stock || {};
+        const oldStock = stockMap[item.selectedSize] !== undefined ? stockMap[item.selectedSize] : 4;
+        
+        const updatedStockMap = {
+          ...stockMap,
+          [item.selectedSize]: Math.max(0, oldStock - item.quantity)
+        };
+        
+        // Update product stock map in DB
+        const { error: updateError } = await supabase
+          .from('products')
+          .update({ sizes_stock: updatedStockMap })
+          .eq('id', item.id);
+          
+        if (updateError) throw updateError;
+      }
+      
+      // Success triggers complete order screen
+      setOrderComplete(true);
+      onClearCart();
       
     } catch (error) {
-      console.error("Checkout initiation error:", error);
+      console.error("Checkout transaction error:", error);
       alert(`Checkout failed: ${error.message || error}`);
+    } finally {
       setIsCheckingOut(false);
     }
   };
@@ -195,10 +139,10 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
       <div className="checkout-success-view">
         <div className="success-card">
           <CheckCircle2 size={64} className="success-icon" />
-          <h2>Order Confirmed & Paid!</h2>
+          <h2>Order Confirmed!</h2>
           <p className="order-number-label">Order Reference: <strong>#{confirmedOrderId}</strong></p>
           <p className="success-message">
-            Thank you for shopping with Urban Clothing. Your payment was successful and your order has been registered in our system. We will contact you at <strong>{phone1}</strong> with delivery details shortly.
+            Thank you for shopping with Urban Gents Wear. Your order has been registered successfully and is being tailored for shipment. We will contact you at <strong>{phone1}</strong> details shortly.
           </p>
           <button className="btn btn-primary" onClick={onBack} style={{ marginTop: '2rem' }}>
             Return to Store
@@ -233,12 +177,11 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
             </button>
           </div>
         ) : (
-          <div className="checkout-grid-layout">
+          <div className="checkout-grid-layout" style={{ display: 'grid', gridTemplateColumns: '1.1fr 0.9fr', gap: '4rem', alignItems: 'start' }}>
             
             {/* Left Column: Shipping details */}
             <div className="checkout-form-column">
               <h3>Shipping Address</h3>
-
               <form id="checkout-shipping-form" onSubmit={handleCheckoutSubmit} className="checkout-address-form">
                 
                 <div className="review-form-group">
@@ -254,7 +197,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   />
                 </div>
 
-                <div className="checkout-form-row">
+                <div style={{ display: 'flex', gap: '1rem' }}>
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipPhone1">Primary Phone</label>
                     <input 
@@ -268,7 +211,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                     />
                   </div>
                   <div className="review-form-group" style={{ flex: 1 }}>
-                    <label htmlFor="shipPhone2">Secondary Phone</label>
+                    <label htmlFor="shipPhone2">Secondary Phone (Optional)</label>
                     <input 
                       type="tel" 
                       id="shipPhone2" 
@@ -280,7 +223,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   </div>
                 </div>
 
-                <div className="checkout-form-row">
+                <div style={{ display: 'flex', gap: '1rem' }}>
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipHouse">House Name/No.</label>
                     <input 
@@ -307,7 +250,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   </div>
                 </div>
 
-                <div className="checkout-form-row">
+                <div style={{ display: 'flex', gap: '1rem' }}>
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipPO">Post Office</label>
                     <input 
@@ -334,7 +277,7 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   </div>
                 </div>
 
-                <div className="checkout-form-row">
+                <div style={{ display: 'flex', gap: '1rem' }}>
                   <div className="review-form-group" style={{ flex: 1 }}>
                     <label htmlFor="shipDist">District</label>
                     <input 
@@ -374,20 +317,6 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   />
                 </div>
 
-                <div className="review-form-group">
-                  <label htmlFor="orderNote">Order Note / Special Delivery Instructions</label>
-                  <input 
-                    type="text" 
-                    id="orderNote" 
-                    className="review-form-input" 
-                    value={note}
-                    onChange={(e) => setNote(e.target.value)}
-                    placeholder="e.g. Please call before delivery, leave with neighbor..."
-                  />
-                </div>
-
-
-
               </form>
             </div>
 
@@ -412,13 +341,13 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   <span>Subtotal</span>
                   <span>Rs. {subtotal}</span>
                 </div>
-                <div className="checkout-bill-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', fontSize: '0.9rem' }}>
-                  <span>Shipping Fee {totalQuantity ? `(${totalQuantity} ${totalQuantity > 1 ? 'items' : 'item'})` : ''}</span>
-                  <span>Rs. {shippingFee}</span>
+                <div className="checkout-bill-row" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1.25rem', fontSize: '0.9rem' }}>
+                  <span>Shipping</span>
+                  <span>{shipping === 0 ? 'Complimentary' : `Rs. ${shipping}`}</span>
                 </div>
                 <div className="checkout-bill-row total" style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-medium)', paddingTop: '1.25rem', fontWeight: 700, fontSize: '1.1rem', textTransform: 'uppercase' }}>
                   <span>Total Amount</span>
-                  <span className="grand-total" style={{ color: 'var(--accent-gold)' }}>Rs. {total}</span>
+                  <span className="grand-total" style={{ color: '#000000' }}>Rs. {total}</span>
                 </div>
 
                 <button 
@@ -426,10 +355,9 @@ export default function CheckoutPage({ cartItems, onClearCart, onBack }) {
                   form="checkout-shipping-form"
                   className="btn btn-accent checkout-submit-btn"
                   disabled={isCheckingOut}
-                  style={{ width: '100%', marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'center', alignItems: 'center' }}
+                  style={{ width: '100%', marginTop: '2rem', display: 'flex', gap: '0.5rem', justifyContent: 'center' }}
                 >
-                  <CreditCard size={18} style={{ marginRight: '6px' }} />
-                  {isCheckingOut ? 'Processing Payment...' : 'Confirm Order & Pay'}
+                  {isCheckingOut ? 'Processing Order...' : 'Confirm Order & Pay'}
                 </button>
               </div>
 
