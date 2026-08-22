@@ -327,5 +327,4 @@ function AppContent() {
         </div>
       } />
     </Routes>
-  );
-}
+  
