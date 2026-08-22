@@ -16,7 +16,7 @@ import ProductDetails from './components/ProductDetails';
 import FAQ from './components/FAQ';
 import RefundReturnPage from './components/RefundReturnPage';
 import MyOrders from './components/MyOrders';
-
+import ComingSoon from './components/ComingSoon';
 
 import { Check } from 'lucide-react';
 import './index.css';
@@ -32,7 +32,14 @@ export default function App() {
 
 function AppContent() {
   const navigate = useNavigate();
-  
+
+  // 🚀 LAUNCH SWITCH
+  // Change false to true on launch day
+  const SITE_ACTIVE = false;
+  if (!SITE_ACTIVE) {
+    return <ComingSoon />;
+  }
+
   const [cartItems, setCartItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
@@ -68,8 +75,6 @@ function AppContent() {
   const addNotification = (message) => {
     const id = Date.now();
     setNotifications((prev) => [...prev, { id, message }]);
-    
-    // Automatically clear toast after 3 seconds
     setTimeout(() => {
       setNotifications((prev) => prev.filter((n) => n.id !== id));
     }, 3000);
@@ -83,7 +88,6 @@ function AppContent() {
       const existingItemIndex = prevItems.findIndex(
         (item) => item.id === product.id && item.selectedSize === chosenSize && item.selectedColor === chosenColor
       );
-
       if (existingItemIndex > -1) {
         const newItems = [...prevItems];
         newItems[existingItemIndex].quantity += 1;
@@ -103,7 +107,6 @@ function AppContent() {
         ];
       }
     });
-    
     addNotification(`${product.name} (Size ${chosenSize}, ${chosenColor}) added to your bag.`);
   };
 
@@ -113,10 +116,10 @@ function AppContent() {
       handleRemoveItem(id, size);
       return;
     }
-    setCartItems((prevItems) => 
-      prevItems.map((item) => 
-        item.id === id && item.selectedSize === size 
-          ? { ...item, quantity: newQty } 
+    setCartItems((prevItems) =>
+      prevItems.map((item) =>
+        item.id === id && item.selectedSize === size
+          ? { ...item, quantity: newQty }
           : item
       )
     );
@@ -124,7 +127,7 @@ function AppContent() {
 
   // Remove Item from Cart
   const handleRemoveItem = (id, size) => {
-    setCartItems((prevItems) => 
+    setCartItems((prevItems) =>
       prevItems.filter((item) => !(item.id === id && item.selectedSize === size))
     );
     addNotification("Item removed from your bag.");
@@ -179,11 +182,10 @@ function AppContent() {
 
   const totalCartCount = cartItems.reduce((acc, item) => acc + item.quantity, 0);
 
-  // Wrappers to read React Router params and search queries
   const ProductDetailsWrapper = () => {
     const { id } = useParams();
     return (
-      <ProductDetails 
+      <ProductDetails
         productId={id}
         onBack={() => navigate(-1)}
         onAddToCart={handleAddToCart}
@@ -197,7 +199,7 @@ function AppContent() {
     const [searchParams] = useSearchParams();
     const category = searchParams.get('category') || 'All';
     return (
-      <CategoryExplorePage 
+      <CategoryExplorePage
         activeCategory={category}
         onAddToCart={handleAddToCart}
         onQuickView={handleProductClick}
@@ -211,11 +213,9 @@ function AppContent() {
       <Route path="/admin" element={<Admin />} />
       <Route path="/*" element={
         <div className="app-container">
-          {/* Ambient Background Blur Blobs */}
           <div className="ambient-blob ambient-blob-1"></div>
           <div className="ambient-blob ambient-blob-2"></div>
-          
-          {/* Toast Notification Container */}
+
           <div className="notification-container">
             {notifications.map((n) => (
               <div key={n.id} className="notification-toast">
@@ -225,33 +225,30 @@ function AppContent() {
             ))}
           </div>
 
-          {/* Primary Layout Header */}
-          <Header 
+          <Header
             products={products}
             onProductSelect={handleProductClick}
-            cartCount={totalCartCount} 
-            activeView="home" // not strictly used for page toggling now, but kept for compatibility
+            cartCount={totalCartCount}
+            activeView="home"
             onViewChange={handleViewChange}
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
           />
-          
-          {/* React Router Switcher */}
+
           <Routes>
-            {/* Home View */}
             <Route path="/" element={
               <main style={{ paddingTop: 'var(--header-height)' }}>
                 <Hero />
-                <Categories 
+                <Categories
                   onCategorySelect={(category) => {
                     handleExploreCategory(category);
-                  }} 
+                  }}
                 />
-                <NewArrivals 
-                  onQuickView={handleProductClick} 
+                <NewArrivals
+                  onQuickView={handleProductClick}
                   onAddToCart={handleAddToCart}
                 />
-                <ProductGrid 
+                <ProductGrid
                   activeFilter={activeFilter}
                   onFilterChange={setActiveFilter}
                   onAddToCart={handleAddToCart}
@@ -267,17 +264,15 @@ function AppContent() {
               </main>
             } />
 
-            {/* Product Details View */}
             <Route path="/product/:id" element={
               <main style={{ paddingTop: 'var(--header-height)' }}>
                 <ProductDetailsWrapper />
               </main>
             } />
 
-            {/* Shopping Bag View */}
             <Route path="/cart" element={
               <main style={{ paddingTop: 'var(--header-height)' }}>
-                <CartPage 
+                <CartPage
                   cartItems={cartItems}
                   products={products}
                   onUpdateQuantity={handleUpdateQuantity}
@@ -289,10 +284,9 @@ function AppContent() {
               </main>
             } />
 
-            {/* Checkout View */}
             <Route path="/checkout" element={
               <main style={{ paddingTop: 'var(--header-height)' }}>
-                <CheckoutPage 
+                <CheckoutPage
                   cartItems={cartItems}
                   onClearCart={handleClearCart}
                   onBack={() => navigate('/cart')}
@@ -300,14 +294,12 @@ function AppContent() {
               </main>
             } />
 
-            {/* Category Explore View */}
             <Route path="/explore" element={
               <main style={{ paddingTop: 'var(--header-height)' }}>
                 <CategoryExploreWrapper />
               </main>
             } />
 
-            {/* Static Views */}
             <Route path="/faq" element={
               <main style={{ paddingTop: 'var(--header-height)' }}>
                 <FAQ onBack={() => navigate('/')} />
@@ -325,11 +317,13 @@ function AppContent() {
                 <MyOrders onBack={() => navigate('/')} />
               </main>
             } />
-
           </Routes>
 
-          {/* Primary Layout Footer */}
-          <Footer activeView="home" onContactClick={handleNavigateToContact} onViewChange={handleViewChange} />
+          <Footer
+            activeView="home"
+            onContactClick={handleNavigateToContact}
+            onViewChange={handleViewChange}
+          />
         </div>
       } />
     </Routes>
