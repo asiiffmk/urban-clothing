@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'rea
+
 import { supabase } from './supabaseClient';
 import Header from './components/Header';
 import Hero from './components/Hero';
