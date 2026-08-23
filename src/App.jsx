@@ -1,4 +1,4 @@
-
+import React, { useState, useEffect } from 'react';
 import { supabase } from './supabaseClient';
 import Header from './components/Header';
 import Hero from './components/Hero';
@@ -326,4 +326,6 @@ function AppContent() {
           />
         </div>
       } />
-    </R
+    </Routes>
+  );
+}
