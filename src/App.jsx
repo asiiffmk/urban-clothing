@@ -16,7 +16,7 @@ import ProductDetails from './components/ProductDetails';
 import FAQ from './components/FAQ';
 import RefundReturnPage from './components/RefundReturnPage';
 import MyOrders from './components/MyOrders';
-import ComingSoon from './components/ComingSoon';
+import NotFound from './components/NotFound';
 
 import { Check } from 'lucide-react';
 import './index.css';
@@ -33,20 +33,12 @@ export default function App() {
 function AppContent() {
   const navigate = useNavigate();
 
-  // 🚀 LAUNCH SWITCH
-  // Change false to true on launch day
-  const SITE_ACTIVE = false;
-  if (!SITE_ACTIVE) {
-    return <ComingSoon />;
-  }
-
   const [cartItems, setCartItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
   const [products, setProducts] = useState([]);
 
-  // Fetch all products on mount
   useEffect(() => {
     async function fetchAllProducts() {
       try {
@@ -57,7 +49,6 @@ function AppContent() {
           .neq('category', 'Innerwear')
           .order('created_at', { ascending: false });
         if (error) throw error;
-        
         const mappedData = (data || []).map(p => ({
           ...p,
           image: productImages[p.image] || p.image,
@@ -71,7 +62,6 @@ function AppContent() {
     fetchAllProducts();
   }, []);
 
-  // Toast Notification handler
   const addNotification = (message) => {
     const id = Date.now();
     setNotifications((prev) => [...prev, { id, message }]);
@@ -80,7 +70,6 @@ function AppContent() {
     }, 3000);
   };
 
-  // Add Item to Shopping Cart
   const handleAddToCart = (product, size, color) => {
     const chosenSize = size || (product.sizes && product.sizes.length > 0 ? product.sizes[0] : 'S');
     const chosenColor = color || (product.colors && product.colors.length > 0 ? product.colors[0].name : 'Obsidian');
@@ -110,7 +99,6 @@ function AppContent() {
     addNotification(`${product.name} (Size ${chosenSize}, ${chosenColor}) added to your bag.`);
   };
 
-  // Update Cart Quantity
   const handleUpdateQuantity = (id, size, newQty) => {
     if (newQty <= 0) {
       handleRemoveItem(id, size);
@@ -125,7 +113,6 @@ function AppContent() {
     );
   };
 
-  // Remove Item from Cart
   const handleRemoveItem = (id, size) => {
     setCartItems((prevItems) =>
       prevItems.filter((item) => !(item.id === id && item.selectedSize === size))
@@ -133,12 +120,10 @@ function AppContent() {
     addNotification("Item removed from your bag.");
   };
 
-  // Clear Cart after checkout success
   const handleClearCart = () => {
     setCartItems([]);
   };
 
-  // Navigation handlers
   const handleProductClick = (product) => {
     navigate(`/product/${product.id}`);
     window.scrollTo({ top: 0, behavior: 'instant' });
@@ -150,23 +135,14 @@ function AppContent() {
   };
 
   const handleViewChange = (view) => {
-    if (view === 'home') {
-      navigate('/');
-    } else if (view === 'cart') {
-      navigate('/cart');
-    } else if (view === 'checkout') {
-      navigate('/checkout');
-    } else if (view === 'explore') {
-      navigate('/explore');
-    } else if (view === 'faq') {
-      navigate('/faq');
-    } else if (view === 'refund') {
-      navigate('/refund');
-    } else if (view === 'admin') {
-      navigate('/admin');
-    } else if (view === 'orders') {
-      navigate('/orders');
-    }
+    if (view === 'home') navigate('/');
+    else if (view === 'cart') navigate('/cart');
+    else if (view === 'checkout') navigate('/checkout');
+    else if (view === 'explore') navigate('/explore');
+    else if (view === 'faq') navigate('/faq');
+    else if (view === 'refund') navigate('/refund');
+    else if (view === 'admin') navigate('/admin');
+    else if (view === 'orders') navigate('/orders');
     window.scrollTo({ top: 0, behavior: 'instant' });
   };
 
@@ -317,6 +293,10 @@ function AppContent() {
                 <MyOrders onBack={() => navigate('/')} />
               </main>
             } />
+
+            {/* 404 Not Found */}
+            <Route path="*" element={<NotFound />} />
+
           </Routes>
 
           <Footer
