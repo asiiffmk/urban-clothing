@@ -32,7 +32,8 @@ export default function App() {
 
 function AppContent() {
   const navigate = useNavigate();
-
+const SITE_ACTIVE = false;
+if (!SITE_ACTIVE) return <NotFound />;
   const [cartItems, setCartItems] = useState([]);
   const [notifications, setNotifications] = useState([]);
   const [activeFilter, setActiveFilter] = useState('All');
